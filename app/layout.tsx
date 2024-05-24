@@ -14,9 +14,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const topBarHeight = 12;
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <header
+          className={`flex items-center justify-center fixed top-0 w-full bg-red-100 z-50 h-${topBarHeight}`}
+        >
+          <div>
+            <span>코딩테라스</span>
+          </div>
+        </header>
+        <main className={`pt-${topBarHeight}`}>{children}</main>
+      </body>
     </html>
   );
 }
