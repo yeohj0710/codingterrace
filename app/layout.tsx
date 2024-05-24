@@ -17,18 +17,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const topBarHeight = 12;
   return (
     <html lang="en">
       <body className={inter.className}>
         <header
-          className={`flex items-center justify-center fixed top-0 w-full bg-red-100 z-50 h-${topBarHeight}`}
+          className={`flex items-center justify-center fixed top-0 w-full bg-gray-200 z-50 h-14 font-bold`}
         >
-          <div>
-            <span>코딩테라스</span>
-          </div>
+          <span className="text-lg font">코딩테라스</span>
         </header>
-        <main className={`pt-${topBarHeight}`}>{children}</main>
+        <main className="pt-14">{children}</main>
       </body>
     </html>
   );
