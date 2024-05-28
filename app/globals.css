@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  user-select: none;
+@layer base {
+  body {
+    user-select: none;
+  }
+  a {
+    @apply text-black;
+  }
+}
+
+@layer utilities {
+}
+
+@layer components {
+  .green-input {
+    @apply bg-transparent rounded-md w-full h-10 px-2.5 focus:outline-none ring-2 focus:ring-2 transition ring-green-200 focus:ring-green-400 border-none placeholder:text-gray-400;
+  }
+  .green-button {
+    @apply w-full bg-green-400 text-white rounded-md text-center hover:bg-green-500 transition-colors disabled:bg-gray-400 disabled:text-gray-300 disabled:cursor-not-allowed;
+  }
 }
