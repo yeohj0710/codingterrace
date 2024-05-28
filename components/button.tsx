@@ -9,7 +9,7 @@ interface ButtonProps {
 export default function FormButton({ text }: ButtonProps) {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className="green-button h-10">
+    <button disabled={pending} className="button-green h-10">
       {pending ? "로딩 중..." : text}
     </button>
   );

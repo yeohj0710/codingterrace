@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
     <div className="flex flex-col h-[150vh] bg-white p-5 gap-2 relative">
