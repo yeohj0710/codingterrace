@@ -12,7 +12,7 @@ export default function () {
     <div className="flex flex-col gap-6 py-8 px-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl">안녕하세요!</h1>
-        <h2 className="text-xl">이메일과 비밀번호로 로그인해 주세요.</h2>
+        <h2 className="text-xl">아이디와 비밀번호로 로그인해 주세요.</h2>
       </div>
       <form action={action} className="flex flex-col gap-3">
         <FormInput
