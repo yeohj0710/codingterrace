@@ -6,7 +6,7 @@ import { useFormState } from "react-dom";
 import { login } from "./actions";
 import Link from "next/link";
 
-export default function () {
+export default function Login() {
   const [state, action] = useFormState(login, null);
   return (
     <div className="flex flex-col gap-6 py-8 px-6">
