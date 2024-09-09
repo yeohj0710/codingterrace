@@ -15,4 +15,29 @@ model User {
   nickname   String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  Post       Post[]
+}
+
+model Post {
+  idx        Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userIdx], references: [idx])
+  category   String
+  title      String
+  content    String
+  images     Image[]
+  password   String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  userIdx Int
+}
+
+model Image {
+  idx        Int      @id @default(autoincrement())
+  post       Post     @relation(fields: [postIdx], references: [idx])
+  url        String
+  position   Int
+  created_at DateTime @default(now())
+
+  postIdx Int
 }
