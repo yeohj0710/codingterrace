@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    user-select: none;
+    /* user-select: none; */
   }
   a {
     @apply text-black;
