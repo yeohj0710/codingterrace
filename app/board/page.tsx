@@ -18,9 +18,16 @@ async function getPosts() {
 export default async function Board() {
   const posts = await getPosts();
   return (
-    <div className="flex flex-col items-center pt-8">
-      <div className="flex flex-col w-[640px] lg:w-1/2 bg-white p-5 gap-3 shadow-lg rounded-lg">
-        <span className="text-2xl font-bold text-gray-800 mt-4">게시판</span>
+    <div className="flex flex-col items-center pt-8 mb-16">
+      <div className="flex flex-col w-[640px] lg:w-1/2 bg-white pt-10 p-6 gap-3 shadow-md rounded-lg">
+        <div className="flex flex-row items-center justify-between w-full">
+          <span className="text-2xl font-bold text-gray-800">자유게시판</span>
+          <Link href="/board/new">
+            <button className="px-4 py-2 bg-green-400 text-white rounded-md hover:bg-green-500">
+              글쓰기
+            </button>
+          </Link>
+        </div>
         <hr className="border-gray-300 my-4" />
         {posts.map((post) => (
           <Link
