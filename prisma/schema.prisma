@@ -20,16 +20,18 @@ model User {
 
 model Post {
   idx        Int      @id @default(autoincrement())
-  user       User     @relation(fields: [userIdx], references: [idx])
+  user       User?    @relation(fields: [userIdx], references: [idx])
   category   String
   title      String
+  nickname   String?
+  ip         String?
+  password   String?
   content    String
   images     Image[]
-  password   String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  userIdx Int
+  userIdx Int?
 }
 
 model Image {

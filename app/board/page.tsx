@@ -6,13 +6,29 @@ async function getPosts() {
     select: {
       idx: true,
       user: true,
+      nickname: true,
+      ip: true,
       category: true,
       title: true,
       content: true,
       created_at: true,
     },
+    orderBy: {
+      created_at: "desc",
+    },
   });
-  return posts;
+  const processedPosts = posts.map((post) => {
+    if (post.user) {
+      return post;
+    } else {
+      return {
+        ...post,
+        nickname: post.nickname ?? "",
+        ip: post.ip ?? "",
+      };
+    }
+  });
+  return processedPosts;
 }
 
 export default async function Board() {
@@ -40,7 +56,7 @@ export default async function Board() {
             </span>
             <p className="text-sm text-gray-500 mt-2">{post.content}</p>
             <div className="flex justify-between items-center mt-4 text-gray-600 text-xs">
-              <span>{post.user.nickname}</span>
+              <span>{post.user?.nickname ?? post.nickname}</span>
               <span>
                 {new Date(post.created_at).toLocaleString("ko-KR", {
                   year: "numeric",

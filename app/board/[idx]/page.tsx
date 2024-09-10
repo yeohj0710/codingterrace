@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import getSession from "@/lib/session";
+import { categoryToName } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
 async function getIsOwner(userIdx: number) {
@@ -15,7 +16,14 @@ async function getPost(idx: number) {
     where: {
       idx,
     },
-    include: {
+    select: {
+      idx: true,
+      nickname: true,
+      ip: true,
+      category: true,
+      title: true,
+      content: true,
+      created_at: true,
       user: {
         select: {
           idx: true,
@@ -37,29 +45,31 @@ export default async function Post({ params }: { params: { idx: string } }) {
   if (!post) {
     return notFound();
   }
-  const isOwner = await getIsOwner(post.idx);
-  console.log(post.images);
+  const isOwner = await getIsOwner(post.user?.idx!);
+  console.log(isOwner);
   return (
     <div className="flex flex-col items-center mb-16">
       <div className="flex flex-col w-[640px] lg:w-1/2 pt-8">
-        <span className="text-2xl font-bold text-gray-800 mt-4">게시판</span>
+        <span className="text-xl font-bold text-gray-800 mt-4">자유게시판</span>
         <hr className="border-gray-300 my-4" />
         <div className="bg-white shadow-md rounded-lg p-6">
-          <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{post.title}</h1>
           <div className="flex justify-between items-center mt-2">
-            <span className="text-sm text-gray-600">{post.category}</span>
             <span className="text-sm text-gray-600">
-              작성자: {post.user.nickname}
+              {categoryToName(post.category)}
+            </span>
+            <span className="text-sm text-gray-600">
+              작성자: {post.user?.nickname ?? post.nickname}
             </span>
             <span className="text-sm text-gray-600">
               작성일: {new Date(post.created_at).toLocaleDateString()}
             </span>
           </div>
           <hr className="border-gray-300 my-4" />
-          <p className="text-lg text-gray-800 leading-relaxed whitespace-pre-line">
+          <p className="text-md text-gray-800 leading-relaxed whitespace-pre-line">
             {post.content}
           </p>
-          {post.images.length > 0 && (
+          {Array.isArray(post.images) && post.images.length > 0 && (
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {post.images.map((image) => (
                 <img
@@ -73,8 +83,8 @@ export default async function Post({ params }: { params: { idx: string } }) {
           )}
           {isOwner && (
             <div className="flex justify-end mt-4">
-              <button className="px-4 py-2 bg-green-400 text-white rounded-md hover:bg-green-500">
-                편집
+              <button className="px-4 py-1.5 bg-green-400 text-white rounded-md hover:bg-green-500">
+                삭제
               </button>
             </div>
           )}

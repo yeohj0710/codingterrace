@@ -1,22 +1,27 @@
 "use client";
 
 import Input from "@/components/input";
-import { useState } from "react";
-import { uploadPost } from "./actions";
+import { useEffect, useState } from "react";
+import { getUser, uploadPost } from "./actions";
 
 export default function AddPost() {
-  const [category, setCategory] = useState("");
+  const [user, setUser] = useState<any>(null);
   const [password, setPassword] = useState("");
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const handleSubmit = async (e: any) => {
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userData = await getUser();
+      setUser(userData);
+    };
+    fetchUser();
+  }, []);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await uploadPost(new FormData(e.target));
-    } catch (error) {
-      console.error(error);
-    }
+      await uploadPost(new FormData(e.currentTarget));
+    } catch (error) {}
   };
   return (
     <div className="flex flex-col items-center">
@@ -41,30 +46,40 @@ export default function AddPost() {
           <div className="flex flex-row gap-8 mb-4">
             <div className="w-full">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                카테고리
+                작성자
               </label>
-              <select
-                name="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-2 border rounded-lg"
-              >
-                <option value="board">자유</option>
-              </select>
+              {user ? (
+                <div className="px-2 py-1.5 border rounded-lg text-gray-500 bg-gray-200">
+                  {user.nickname ?? "익명"}
+                </div>
+              ) : (
+                <Input
+                  name="nickname"
+                  type="text"
+                  placeholder="닉네임을 입력해 주세요. (선택)"
+                  className="w-full px-2 py-1.5 border rounded-lg"
+                />
+              )}
             </div>
             <div className="w-full">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 비밀번호{" "}
                 <label className="text-xs">(비회원 게시글 삭제 시 필요) </label>
               </label>
-              <input
-                name="password"
-                type="password"
-                placeholder="비밀번호를 입력해 주세요. (선택)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-2 py-1.5 border rounded-lg"
-              />
+              {user ? (
+                <div className="px-2 py-1.5 border rounded-lg text-gray-500 bg-gray-200">
+                  　
+                </div>
+              ) : (
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="비밀번호를 입력해 주세요. (선택)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-2 py-1.5 border rounded-lg"
+                />
+              )}
             </div>
           </div>
           <div className="mb-4">
