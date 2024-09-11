@@ -19,6 +19,7 @@ export default function Home() {
     };
     registerServiceWorker();
   }, []);
+
   const handleNotificationClick = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
@@ -26,13 +27,24 @@ export default function Home() {
         userVisibleOnly: true,
         applicationServerKey: process.env.NEXT_PUBLIC_VAPID_KEY,
       });
-      const response = await fetch("/api/send-notification", {
+
+      // 구독 정보를 서버에 저장
+      await fetch("/api/save-subscription", {
         method: "POST",
         body: JSON.stringify(subscription),
         headers: {
           "Content-Type": "application/json",
         },
       });
+
+      // 알림 전송 요청
+      const response = await fetch("/api/send-notification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
       if (!response.ok) {
         throw new Error("Failed to send notification");
       }
@@ -40,6 +52,7 @@ export default function Home() {
       console.error("Error during notification subscription:", error);
     }
   };
+
   return (
     <div className="flex flex-col h-[150vh] bg-white p-5 gap-2 relative">
       <button onClick={handleNotificationClick}>알림</button>

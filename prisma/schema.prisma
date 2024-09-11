@@ -43,3 +43,10 @@ model Image {
 
   postIdx Int
 }
+
+model Subscription {
+  id       Int    @id @default(autoincrement())
+  endpoint String @unique
+  p256dh   String
+  auth     String
+}
