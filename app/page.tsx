@@ -49,7 +49,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center mb-10">
       <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 bg-white p-5 gap-2 relative">
         <span className="text-lg font-bold mb-3">
           모든 사이트 이용자에게 알림 보내기

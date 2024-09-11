@@ -25,8 +25,8 @@ export default function AddPost() {
   };
   return (
     <div className="flex flex-col items-center">
-      <div className="w-[640px] lg:w-1/2 mx-auto py-10">
-        <h1 className="text-xl font-bold mb-5">게시글 작성</h1>
+      <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 mx-auto pt-8 sm:pb-10">
+        <h1 className="text-xl font-bold ml-5 sm:ml-0 sm:mb-5">게시글 작성</h1>
         <form
           onSubmit={handleSubmit}
           className="bg-white p-6 rounded-lg shadow-lg"
@@ -43,8 +43,8 @@ export default function AddPost() {
               className="w-full p-2 border rounded-lg"
             />
           </div>
-          <div className="flex flex-row gap-8 mb-4">
-            <div className="w-full">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mb-4">
+            <div className="w-full sm:w-1/2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 작성자
               </label>
@@ -61,7 +61,7 @@ export default function AddPost() {
                 />
               )}
             </div>
-            <div className="w-full">
+            <div className="w-full sm:w-1/2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 비밀번호{" "}
                 <label className="text-xs">(비회원 게시글 삭제 시 필요) </label>
@@ -82,6 +82,7 @@ export default function AddPost() {
               )}
             </div>
           </div>
+
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">
               내용
