@@ -1,6 +1,6 @@
+import db from "@/lib/db";
 import { NextResponse } from "next/server";
 import webpush from "web-push";
-import db from "@/lib/db"; // 데이터베이스 연결 코드
 
 webpush.setVapidDetails(
   "mailto:your-email@example.com",
@@ -8,37 +8,43 @@ webpush.setVapidDetails(
   process.env.PRIVATE_VAPID_KEY as string
 );
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    const subscriptions = await db.subscription.findMany();
+    const { title, message } = await request.json(); // 클라이언트에서 보낸 제목과 메시지를 추출
+    const subscriptions = await db.subscription.findMany(); // 구독된 모든 사용자 가져오기
 
     const payload = JSON.stringify({
-      title: "코딩테라스",
-      message: "누군가가 코딩테라스의 알림 버튼을 눌렀습니다!",
+      title,
+      message,
     });
 
-    const notifications = subscriptions.map(async (subscription) => {
+    const notificationPromises = subscriptions.map(async (subscription) => {
+      const { endpoint, p256dh, auth } = subscription;
+
       const pushSubscription = {
-        endpoint: subscription.endpoint,
+        endpoint,
         keys: {
-          p256dh: subscription.p256dh,
-          auth: subscription.auth,
+          p256dh,
+          auth,
         },
       };
+
       try {
         await webpush.sendNotification(pushSubscription, payload);
       } catch (error) {
-        console.error("Error sending notification:", error);
+        console.error("Error sending notification to:", endpoint, error);
       }
     });
 
-    await Promise.all(notifications);
+    await Promise.all(notificationPromises);
 
-    return NextResponse.json({ message: "Notifications sent" });
+    return NextResponse.json({
+      message: "Notification sent to all subscribers",
+    });
   } catch (error) {
-    console.error("Error sending notifications:", error);
+    console.error("Error sending notification:", error);
     return NextResponse.json(
-      { error: "Error sending notifications" },
+      { error: "Error sending notification" },
       { status: 500 }
     );
   }

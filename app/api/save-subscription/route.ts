@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import db from "@/lib/db"; // 데이터베이스 연결 코드
+import db from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
