@@ -51,8 +51,16 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center mb-10">
       <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 bg-white p-5 gap-2 relative">
-        <span className="text-lg font-bold mb-3">
+        <span className="text-lg font-bold">
           모든 사이트 이용자에게 알림 보내기
+        </span>
+        <span className="text-sm">
+          알림을 보내거나 받으려면 크롬 알림 권한 허용이 필요해요.
+          <div className=""></div>
+        </span>
+        <span className="text-sm mb-3">
+          반드시 카카오톡 브라우저가 아닌 <b>크롬</b> 앱으로 접속해야 권한
+          허용이 가능합니다!
         </span>
         <input
           type="text"
