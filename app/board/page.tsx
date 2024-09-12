@@ -56,7 +56,12 @@ export default async function Board() {
             </span>
             <p className="text-sm text-gray-500 mt-2">{post.content}</p>
             <div className="flex justify-between items-center mt-4 text-gray-600 text-xs">
-              <span>{post.user?.nickname ?? post.nickname}</span>
+              <div className="flex flex-row gap-1">
+                <span>{post.user?.nickname ?? post.nickname}</span>
+                {!post.user && post.ip ? (
+                  <span className="text-gray-400">({post.ip})</span>
+                ) : null}
+              </div>
               <span>
                 {new Date(post.created_at).toLocaleString("ko-KR", {
                   year: "numeric",

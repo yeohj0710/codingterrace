@@ -14,8 +14,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "코딩테라스",
-    description:
-      "코딩테라스에서 NextJS를 이용해 구현한 다양한 기능들을 체험해 보세요!",
+    description: "코드로 구현된 기능들을 체험하세요!",
     url: "https://codingterrace.com/",
     images: [
       {

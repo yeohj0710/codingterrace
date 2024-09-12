@@ -2,6 +2,7 @@
 
 import db from "@/lib/db";
 import getSession from "@/lib/session";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -23,6 +24,17 @@ const postSchema = z.object({
   nickname: z.string().optional().nullable(),
   password: z.string().optional().nullable(),
 });
+
+function formatIp(ip: string | null): string {
+  if (ip === null) {
+    return "192.168";
+  }
+  const segments = ip.split(":")[0].split(".");
+  if (segments.length < 2) {
+    return "192.168";
+  }
+  return segments.slice(0, 2).join(".");
+}
 
 export async function uploadPost(formData: FormData) {
   const data = {
@@ -54,11 +66,14 @@ export async function uploadPost(formData: FormData) {
     });
     redirect(`/board/${post.idx}`);
   } else {
-    console.log(data);
+    const header = headers();
+    const ip = header.get("x-forwarded-for");
+    const formattedIp = formatIp(ip);
     const post = await db.post.create({
       data: {
         title: result.data?.title,
         nickname: result.data?.nickname ?? "",
+        ip: formattedIp,
         password: result.data?.password ?? "",
         content: result.data?.content,
         category: "board",
