@@ -72,7 +72,7 @@ export async function uploadPost(formData: FormData) {
     const post = await db.post.create({
       data: {
         title: result.data?.title,
-        nickname: result.data?.nickname ?? "",
+        nickname: result.data?.nickname !== "" ? result.data?.nickname : "익명",
         ip: formattedIp,
         password: result.data?.password ?? "",
         content: result.data?.content,
