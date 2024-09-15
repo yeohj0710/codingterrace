@@ -10,17 +10,14 @@ webpush.setVapidDetails(
 
 export async function POST(request: Request) {
   try {
-    const { title, message } = await request.json(); // 클라이언트에서 보낸 제목과 메시지를 추출
-    const subscriptions = await db.subscription.findMany(); // 구독된 모든 사용자 가져오기
-
+    const { title, message } = await request.json();
+    const subscriptions = await db.subscription.findMany();
     const payload = JSON.stringify({
       title,
       message,
     });
-
     const notificationPromises = subscriptions.map(async (subscription) => {
       const { endpoint, p256dh, auth } = subscription;
-
       const pushSubscription = {
         endpoint,
         keys: {
@@ -28,18 +25,29 @@ export async function POST(request: Request) {
           auth,
         },
       };
-
       try {
         await webpush.sendNotification(pushSubscription, payload);
-      } catch (error) {
-        console.error("Error sending notification to:", endpoint, error);
+      } catch (error: any) {
+        if (error.statusCode === 410) {
+          console.log(
+            "다음의 subscription이 만료되었거나 해지되어 삭제합니다:",
+            subscription.endpoint
+          );
+          await db.subscription.delete({
+            where: { endpoint: subscription.endpoint },
+          });
+        } else {
+          console.error(
+            "Error sending notification to:",
+            subscription.endpoint,
+            error
+          );
+        }
       }
     });
-
     await Promise.all(notificationPromises);
-
-    return NextResponse.json({
-      message: "Notification sent to all subscribers",
+    return new Response(JSON.stringify({ message: "Notification sent" }), {
+      status: 200,
     });
   } catch (error) {
     console.error("Error sending notification:", error);

@@ -7,28 +7,98 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   useEffect(() => {
+    openExternalInKakao();
+    requestNotificationPermission();
     registerServiceWorker();
   }, []);
+  const openExternalInKakao = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const targetUrl = "https://codingterrace.com";
+    if (userAgent.includes("kakaotalk")) {
+      window.location.href =
+        "kakaotalk://web/openExternal?url=" + encodeURIComponent(targetUrl);
+    }
+  };
+  const requestNotificationPermission = async () => {
+    if (Notification.permission === "denied") {
+      alert("사이트 설정에서 알림 권한을 허용해 주세요.");
+    } else if (Notification.permission === "default") {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          alert("사이트 설정에서 알림 권한을 허용해 주세요.");
+        }
+      } catch (error) {
+        console.error("알림 권한 요청 중 오류 발생:", error);
+      }
+    }
+  };
+  const saveSubscriptionToServer = async (subscription: PushSubscription) => {
+    try {
+      const response = await fetch("/api/save-subscription", {
+        method: "POST",
+        body: JSON.stringify(subscription),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to save subscription on the server");
+      }
+      const result = await response.json();
+      console.log("Subscription saved:", result);
+    } catch (error) {
+      console.error("Error saving subscription to the server:", error);
+    }
+  };
   const registerServiceWorker = async () => {
     if ("serviceWorker" in navigator) {
       try {
         const registration = await navigator.serviceWorker.register("/sw.js");
-        console.log(
-          "Service Worker registered with scope:",
-          registration.scope
+        const subscription = await registration.pushManager.getSubscription();
+        const convertedVapidKey = urlBase64ToUint8Array(
+          process.env.NEXT_PUBLIC_VAPID_KEY as string
         );
+        if (!subscription) {
+          const newSubscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedVapidKey,
+          });
+
+          await saveSubscriptionToServer(newSubscription);
+        }
+        console.log("Service Worker가 등록되었습니다: ", registration.scope);
       } catch (error) {
-        console.error("Service Worker registration failed:", error);
+        console.error("Service Worker 등록에 실패하였습니다:", error);
       }
     }
+  };
+  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, "+")
+      .replace(/_/g, "/");
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   };
   const handleNotificationClick = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_KEY,
-      });
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        const convertedVapidKey = urlBase64ToUint8Array(
+          process.env.NEXT_PUBLIC_VAPID_KEY as string
+        );
+        const newSubscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey,
+        });
+        await saveSubscriptionToServer(newSubscription);
+      }
       const payload = JSON.stringify({
         title,
         message,
@@ -41,13 +111,12 @@ export default function Home() {
         },
       });
       if (!response.ok) {
-        throw new Error("Failed to send notification");
+        throw new Error("알림 전송에 실패하였습니다.");
       }
     } catch (error) {
-      console.error("Error during notification subscription:", error);
+      console.error("Notification Subscription 중 에러 발생:", error);
     }
   };
-
   return (
     <div className="flex flex-col items-center mb-10">
       <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 bg-white p-5 gap-2 relative">
@@ -56,7 +125,6 @@ export default function Home() {
         </span>
         <span className="text-sm">
           알림을 보내거나 받으려면 크롬 알림 권한 허용이 필요해요.
-          <div className=""></div>
         </span>
         <span className="text-sm mb-3">
           반드시 카카오톡 브라우저가 아닌 <b>크롬</b> 앱으로 접속해야 권한
