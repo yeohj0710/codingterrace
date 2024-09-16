@@ -18,7 +18,10 @@ export const requestNotificationPermission = async (showAlert: () => void) => {
   return true;
 };
 
-export const toggleNotification = async (type: string) => {
+export const toggleSubscription = async (
+  type: string,
+  showAlert: () => void
+) => {
   if (!("serviceWorker" in navigator)) return;
   try {
     const registration = await navigator.serviceWorker.ready;
@@ -36,7 +39,10 @@ export const toggleNotification = async (type: string) => {
       await saveSubscriptionToServer(newSubscription, type);
     }
   } catch (error) {
-    console.error("알림 on/off 중 에러가 발생하였습니다:", error);
+    console.error("알림 on/off 전환 중 에러가 발생했습니다:", error);
+    if (error instanceof Error && error.name === "NotAllowedError") {
+      showAlert();
+    }
   }
 };
 

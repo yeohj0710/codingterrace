@@ -7,8 +7,8 @@ import {
 } from "@heroicons/react/24/solid";
 import {
   requestNotificationPermission,
-  toggleNotification,
   sendNotification,
+  toggleSubscription,
 } from "@/lib/notification";
 import Link from "next/link";
 import CustomAlert from "@/components/customAlert";
@@ -37,10 +37,13 @@ export default function Home() {
     setIsSubscribed((prev) => !prev);
     try {
       setIsProcessing(true);
-      await toggleNotification("main");
+      await toggleSubscription("main", () => setIsAlertVisible(true));
       await checkNotificationStatus();
     } catch (error) {
-      console.error("알림 on/off 처리 중 에러가 발생했습니다:", error);
+      console.error("알림 on/off 전환 중 에러가 발생했습니다:", error);
+      if (error instanceof Error && error.name === "NotAllowedError") {
+        setIsAlertVisible(true);
+      }
       setIsSubscribed((prev) => !prev);
     } finally {
       setIsProcessing(false);
@@ -58,7 +61,9 @@ export default function Home() {
   };
   return (
     <div className="flex flex-col items-center mb-10">
-      {isAlertVisible && <CustomAlert />}
+      {isAlertVisible && (
+        <CustomAlert onClose={() => setIsAlertVisible(false)} />
+      )}
       <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 bg-white p-5 gap-2 relative">
         <div className="flex justify-between items-center mb-1">
           <span className="text-lg font-bold">
@@ -105,7 +110,6 @@ export default function Home() {
         >
           {isSending ? "알림 발송 중" : "알림 보내기"}
         </button>
-
         <div className="mt-10">
           <div className="flex flex-row gap-[2%] mb-4">
             <span className="font-bold">게시판</span>

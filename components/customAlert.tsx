@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function CustomAlert() {
-  const [isVisible, setIsVisible] = useState(true);
+export default function CustomAlert({ onClose }: { onClose: () => void }) {
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
   useEffect(() => {
     const checkIfMobile = () => {
@@ -11,9 +10,8 @@ export default function CustomAlert() {
     checkIfMobile();
   }, []);
   const handleClose = () => {
-    setIsVisible(false);
+    onClose();
   };
-  if (!isVisible) return null;
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-2">
       <div className="bg-white p-5 rounded shadow-md text-center">

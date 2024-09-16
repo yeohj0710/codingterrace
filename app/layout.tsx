@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "코딩테라스",
   description:
     "코딩테라스에서 NextJS를 이용해 구현한 다양한 기능들을 체험해 보세요!",
+  metadataBase: new URL("https://codingterrace.com"),
   icons: {
     icon: "/icon.png",
   },
