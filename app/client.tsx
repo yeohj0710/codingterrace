@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BellIcon, BellSlashIcon } from "@heroicons/react/24/solid";
 import { sendNotification, toggleSubscription } from "@/lib/notification";
 import Link from "next/link";
@@ -31,6 +31,17 @@ export default function HomeClient({ posts }: { posts: Post[] }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
+  useEffect(() => {
+    openExternalInKakao();
+  }, []);
+  const openExternalInKakao = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const targetUrl = "https://codingterrace.com";
+    if (userAgent.includes("kakaotalk")) {
+      window.location.href =
+        "kakaotalk://web/openExternal?url=" + encodeURIComponent(targetUrl);
+    }
+  };
   const checkNotificationStatus = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
