@@ -78,6 +78,7 @@ export default function Post({ params }: { params: { idx: string } }) {
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: false,
+                timeZone: "Asia/Seoul",
               })}
             </span>
           </div>

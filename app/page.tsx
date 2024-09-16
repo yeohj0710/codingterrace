@@ -33,6 +33,37 @@ export default function Home() {
       }
     }
   };
+  const registerServiceWorker = async () => {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) return;
+      const convertedVapidKey = urlBase64ToUint8Array(
+        process.env.NEXT_PUBLIC_VAPID_KEY as string
+      );
+      const newSubscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey,
+      });
+      await saveSubscriptionToServer(newSubscription);
+      console.log("Service Worker가 등록되었습니다: ", registration.scope);
+    } catch (error) {
+      console.error("Service Worker 등록에 실패하였습니다:", error);
+    }
+  };
+  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, "+")
+      .replace(/_/g, "/");
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
   const saveSubscriptionToServer = async (subscription: PushSubscription) => {
     try {
       const response = await fetch("/api/save-subscription", {
@@ -51,45 +82,33 @@ export default function Home() {
       console.error("Error saving subscription to the server:", error);
     }
   };
-  const registerServiceWorker = async () => {
-    if ("serviceWorker" in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register("/sw.js");
-        const subscription = await registration.pushManager.getSubscription();
-        const convertedVapidKey = urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_KEY as string
-        );
-        if (!subscription) {
-          const newSubscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: convertedVapidKey,
-          });
-
-          await saveSubscriptionToServer(newSubscription);
-        }
-        console.log("Service Worker가 등록되었습니다: ", registration.scope);
-      } catch (error) {
-        console.error("Service Worker 등록에 실패하였습니다:", error);
-      }
-    }
-  };
-  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/\-/g, "+")
-      .replace(/_/g, "/");
-    const rawData = atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-  };
   const handleNotificationClick = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
+      if (subscription) {
+        const response = await fetch("/api/check-subscription", {
+          method: "POST",
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const result = await response.json();
+        if (!result.exists) {
+          console.log("서버에 구독 정보가 없습니다. 새로운 구독을 생성합니다.");
+          const convertedVapidKey = urlBase64ToUint8Array(
+            process.env.NEXT_PUBLIC_VAPID_KEY as string
+          );
+          const newSubscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedVapidKey,
+          });
+          await saveSubscriptionToServer(newSubscription);
+        } else {
+          console.log("서버에 구독 정보가 이미 존재합니다.");
+        }
+      } else {
         const convertedVapidKey = urlBase64ToUint8Array(
           process.env.NEXT_PUBLIC_VAPID_KEY as string
         );
@@ -113,6 +132,7 @@ export default function Home() {
       if (!response.ok) {
         throw new Error("알림 전송에 실패하였습니다.");
       }
+      console.log("알림이 성공적으로 전송되었습니다.");
     } catch (error) {
       console.error("Notification Subscription 중 에러 발생:", error);
     }
