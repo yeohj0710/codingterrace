@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@heroicons/react": "^2.1.5",
     "@prisma/client": "^5.14.0",
     "@types/bcrypt": "^5.0.2",
     "bcrypt": "^5.1.1",

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const subscription = await request.json();
     if (!validateSubscription(subscription)) {
       return NextResponse.json(
-        { error: "Invalid subscription data" },
+        { error: "subscription 데이터 형식이 올바르지 않습니다." },
         { status: 400 }
       );
     }
@@ -25,11 +25,14 @@ export async function POST(request: Request) {
       update: {
         p256dh: subscription.keys.p256dh,
         auth: subscription.keys.auth,
+        type: subscription.type ?? "main",
       },
       create: {
         endpoint: subscription.endpoint,
         p256dh: subscription.keys.p256dh,
         auth: subscription.keys.auth,
+        type: subscription.type,
+        created_at: new Date(),
       },
     });
     return NextResponse.json({ message: "Subscription saved" });

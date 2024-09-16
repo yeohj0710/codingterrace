@@ -45,8 +45,10 @@ model Image {
 }
 
 model Subscription {
-  id       Int    @id @default(autoincrement())
-  endpoint String @unique
-  p256dh   String
-  auth     String
+  id         Int      @id @default(autoincrement())
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  type       String?
+  created_at DateTime @default(now())
 }

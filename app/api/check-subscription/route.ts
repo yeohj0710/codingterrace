@@ -3,7 +3,7 @@ import db from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
-    const { endpoint } = await request.json();
+    const { endpoint, type } = await request.json();
     if (!endpoint) {
       return NextResponse.json(
         { error: "No endpoint provided" },
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       );
     }
     const subscription = await db.subscription.findUnique({
-      where: { endpoint },
+      where: { endpoint, type },
     });
     if (subscription) {
       return NextResponse.json({ exists: true });

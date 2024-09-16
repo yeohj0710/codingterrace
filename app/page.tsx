@@ -1,154 +1,87 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect } from "react";
+import {
+  BellIcon as SolidBellIcon,
+  BellSlashIcon as SolidBellSlashIcon,
+} from "@heroicons/react/24/solid";
+import {
+  requestNotificationPermission,
+  toggleNotification,
+  sendNotification,
+} from "@/lib/notification";
+import Link from "next/link";
+import CustomAlert from "@/components/customAlert";
 
 export default function Home() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
   useEffect(() => {
-    openExternalInKakao();
-    requestNotificationPermission();
-    registerServiceWorker();
+    requestNotificationPermission(() => setIsAlertVisible(true));
+    checkNotificationStatus();
   }, []);
-  const openExternalInKakao = () => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const targetUrl = "https://codingterrace.com";
-    if (userAgent.includes("kakaotalk")) {
-      window.location.href =
-        "kakaotalk://web/openExternal?url=" + encodeURIComponent(targetUrl);
-    }
-  };
-  const requestNotificationPermission = async () => {
-    if (Notification.permission === "denied") {
-      alert("사이트 설정에서 알림 권한을 허용해 주세요.");
-    } else if (Notification.permission === "default") {
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          alert("사이트 설정에서 알림 권한을 허용해 주세요.");
-        }
-      } catch (error) {
-        console.error("알림 권한 요청 중 오류 발생:", error);
-      }
-    }
-  };
-  const registerServiceWorker = async () => {
-    if (!("serviceWorker" in navigator)) return;
-    try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      const subscription = await registration.pushManager.getSubscription();
-      if (subscription) return;
-      const convertedVapidKey = urlBase64ToUint8Array(
-        process.env.NEXT_PUBLIC_VAPID_KEY as string
-      );
-      const newSubscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey,
-      });
-      await saveSubscriptionToServer(newSubscription);
-      console.log("Service Worker가 등록되었습니다: ", registration.scope);
-    } catch (error) {
-      console.error("Service Worker 등록에 실패하였습니다:", error);
-    }
-  };
-  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/\-/g, "+")
-      .replace(/_/g, "/");
-    const rawData = atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-  };
-  const saveSubscriptionToServer = async (subscription: PushSubscription) => {
-    try {
-      const response = await fetch("/api/save-subscription", {
-        method: "POST",
-        body: JSON.stringify(subscription),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to save subscription on the server");
-      }
-      const result = await response.json();
-      console.log("Subscription saved:", result);
-    } catch (error) {
-      console.error("Error saving subscription to the server:", error);
-    }
-  };
-  const handleNotificationClick = async () => {
+  const checkNotificationStatus = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
-      if (subscription) {
-        const response = await fetch("/api/check-subscription", {
-          method: "POST",
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        const result = await response.json();
-        if (!result.exists) {
-          console.log("서버에 구독 정보가 없습니다. 새로운 구독을 생성합니다.");
-          const convertedVapidKey = urlBase64ToUint8Array(
-            process.env.NEXT_PUBLIC_VAPID_KEY as string
-          );
-          const newSubscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: convertedVapidKey,
-          });
-          await saveSubscriptionToServer(newSubscription);
-        } else {
-          console.log("서버에 구독 정보가 이미 존재합니다.");
-        }
-      } else {
-        const convertedVapidKey = urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_KEY as string
-        );
-        const newSubscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: convertedVapidKey,
-        });
-        await saveSubscriptionToServer(newSubscription);
-      }
-      const payload = JSON.stringify({
-        title,
-        message,
-      });
-      const response = await fetch("/api/send-notification", {
-        method: "POST",
-        body: payload,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) {
-        throw new Error("알림 전송에 실패하였습니다.");
-      }
-      console.log("알림이 성공적으로 전송되었습니다.");
+      setIsSubscribed(!!subscription);
     } catch (error) {
-      console.error("Notification Subscription 중 에러 발생:", error);
+      console.error("구독 상태 확인 중 에러가 발생했습니다:", error);
+    }
+  };
+  const handleNotificationToggle = async () => {
+    setIsSubscribed((prev) => !prev);
+    try {
+      setIsProcessing(true);
+      await toggleNotification("main");
+      await checkNotificationStatus();
+    } catch (error) {
+      console.error("알림 on/off 처리 중 에러가 발생했습니다:", error);
+      setIsSubscribed((prev) => !prev);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  const handleNotificationSend = async () => {
+    setIsSending(true);
+    try {
+      await sendNotification(title, message, "main");
+    } catch (error) {
+      console.error("알림 발송 중 에러가 발생했습니다:", error);
+    } finally {
+      setIsSending(false);
     }
   };
   return (
     <div className="flex flex-col items-center mb-10">
+      {isAlertVisible && <CustomAlert />}
       <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 bg-white p-5 gap-2 relative">
-        <span className="text-lg font-bold">
-          모든 사이트 이용자에게 알림 보내기
-        </span>
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-lg font-bold">
+            모든 사이트 이용자에게 알림 보내기
+          </span>
+          <button
+            onClick={handleNotificationToggle}
+            className="text-gray-500"
+            disabled={isProcessing}
+          >
+            {isSubscribed ? (
+              <SolidBellIcon className="w-6 h-6 text-green-500" />
+            ) : (
+              <SolidBellSlashIcon className="w-6 h-6 text-red-500" />
+            )}
+          </button>
+        </div>
         <span className="text-sm">
-          알림을 보내거나 받으려면 크롬 알림 권한 허용이 필요해요.
+          알림 설정과 알림 기능은{" "}
+          <span className="text-red-500">인터넷을 종료해도</span> 유지됩니다!
         </span>
         <span className="text-sm mb-3">
-          반드시 카카오톡 브라우저가 아닌 <b>크롬</b> 앱으로 접속해야 권한
-          허용이 가능합니다!
+          다른 유저들과 익명으로 어디서나 간편하게 소통해 보세요.
         </span>
         <input
           type="text"
@@ -164,11 +97,15 @@ export default function Home() {
           className="p-2 border rounded-lg w-full"
         />
         <button
-          onClick={handleNotificationClick}
-          className="bg-green-400 text-white p-2 rounded-lg hover:bg-green-500"
+          onClick={handleNotificationSend}
+          className={`${
+            isSending ? "bg-gray-400" : "bg-green-400 hover:bg-green-500"
+          } text-white p-2 rounded-lg`}
+          disabled={isSending}
         >
-          알림 보내기
+          {isSending ? "알림 발송 중" : "알림 보내기"}
         </button>
+
         <div className="mt-10">
           <div className="flex flex-row gap-[2%] mb-4">
             <span className="font-bold">게시판</span>
