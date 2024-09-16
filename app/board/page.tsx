@@ -1,35 +1,5 @@
-import db from "@/lib/db";
 import Link from "next/link";
-
-async function getPosts() {
-  const posts = await db.post.findMany({
-    select: {
-      idx: true,
-      user: true,
-      nickname: true,
-      ip: true,
-      category: true,
-      title: true,
-      content: true,
-      created_at: true,
-    },
-    orderBy: {
-      created_at: "desc",
-    },
-  });
-  const processedPosts = posts.map((post) => {
-    if (post.user) {
-      return post;
-    } else {
-      return {
-        ...post,
-        nickname: post.nickname ?? "",
-        ip: post.ip ?? "",
-      };
-    }
-  });
-  return processedPosts;
-}
+import { getPosts } from "./actions";
 
 export default async function Board() {
   const posts = await getPosts();
