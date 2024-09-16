@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { BellIcon, BellSlashIcon } from "@heroicons/react/24/solid";
-import { sendNotification, toggleSubscription } from "@/lib/notification";
+import {
+  requestNotificationPermission,
+  sendNotification,
+  toggleSubscription,
+} from "@/lib/notification";
 import Link from "next/link";
 import CustomAlert from "@/components/customAlert";
 
@@ -33,6 +37,8 @@ export default function HomeClient({ posts }: { posts: Post[] }) {
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   useEffect(() => {
     openExternalInKakao();
+    requestNotificationPermission(() => setIsAlertVisible(true));
+    checkNotificationStatus();
   }, []);
   const openExternalInKakao = () => {
     const userAgent = navigator.userAgent.toLowerCase();
