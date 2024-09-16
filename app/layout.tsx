@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     url: "https://codingterrace.com/",
     images: [
       {
-        url: "https://avatars.githubusercontent.com/u/93759367?v=4",
+        url: "/icon.png",
         width: 800,
         height: 800,
         alt: "코딩테라스",
