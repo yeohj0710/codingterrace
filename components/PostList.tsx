@@ -32,8 +32,13 @@ export default function PostList({ posts }: { posts: Post[] }) {
           >
             <h2 className="text-lg font-semibold">{post.title}</h2>
             <p className="text-sm text-gray-600 mt-2">{post.content}</p>
-            <div className="flex justify-between items-center mt-4 text-xs text-gray-500">
-              <span>{post.nickname || post.user?.nickname}</span>
+            <div className="flex justify-between items-center mt-4 text-gray-600 text-xs">
+              <div className="flex flex-row gap-1">
+                <span>{post.user?.nickname ?? post.nickname}</span>
+                {!post.user && post.ip ? (
+                  <span className="text-gray-400">({post.ip})</span>
+                ) : null}
+              </div>
               <span>
                 {new Date(post.created_at).toLocaleString("ko-KR", {
                   year: "numeric",
