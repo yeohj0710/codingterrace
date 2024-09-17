@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-export default function openExternalInKakao() {
+export default function OpenExternalInKakao() {
   useEffect(() => {
     openExternalInKakao();
   }, []);
