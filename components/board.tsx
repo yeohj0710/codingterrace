@@ -3,24 +3,6 @@
 import Link from "next/link";
 import PostList from "@/components/postList";
 
-interface Post {
-  title: string;
-  idx: number;
-  category: string;
-  nickname: string | null;
-  ip: string | null;
-  content: string;
-  created_at: Date;
-  user: {
-    idx: number;
-    id: string;
-    password: string;
-    nickname: string;
-    created_at: Date;
-    updated_at: Date;
-  } | null;
-}
-
 export default function Board() {
   return (
     <div className="w-full sm:w-[640px] lg:w-1/2 px-5 py-7 bg-white sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
