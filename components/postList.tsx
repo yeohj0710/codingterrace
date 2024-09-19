@@ -1,6 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import PostPagination from "@/components/postPagination";
+import { getPosts } from "@/app/board/actions";
 
 interface Post {
   title: string;
@@ -20,10 +23,32 @@ interface Post {
   } | null;
 }
 
-export default function PostList({ posts }: { posts: Post[] }) {
+export default function PostList() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const postsPerPage = 10;
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+      const { posts, totalPosts } = await getPosts(currentPage, postsPerPage);
+      setPosts(posts);
+      setTotalPages(Math.ceil(totalPosts / postsPerPage));
+      setLoading(false);
+    };
+    fetchPosts();
+  }, [currentPage]);
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   return (
-    <div className="w-full bg-white rounded-lg shadow">
-      {posts.length > 0 ? (
+    <div className="w-full bg-white">
+      {loading ? (
+        <div className="animate-pulse space-y-4">
+          {[...Array(10)].map((_, index) => (
+            <div key={index} className="h-28 bg-gray-200 rounded-md mb-2"></div>
+          ))}
+        </div>
+      ) : posts.length > 0 ? (
         posts.map((post: Post) => (
           <Link
             key={post.idx}
@@ -31,7 +56,16 @@ export default function PostList({ posts }: { posts: Post[] }) {
             className="block mb-4 p-4 bg-gray-100 rounded hover:bg-gray-200"
           >
             <h2 className="text-lg font-semibold">{post.title}</h2>
-            <p className="text-sm text-gray-600 mt-2">{post.content}</p>
+            <p className="text-sm text-gray-600 mt-2 sm:hidden">
+              {post.content.length > 20
+                ? `${post.content.slice(0, 20)} ...`
+                : post.content}
+            </p>
+            <p className="text-sm text-gray-600 mt-2 hidden sm:block">
+              {post.content.length > 30
+                ? `${post.content.slice(0, 30)} ...`
+                : post.content}
+            </p>
             <div className="flex justify-between items-center mt-4 text-gray-600 text-xs">
               <div className="flex flex-row gap-1">
                 <span>{post.user?.nickname ?? post.nickname}</span>
@@ -55,6 +89,11 @@ export default function PostList({ posts }: { posts: Post[] }) {
       ) : (
         <span className="text-sm text-gray-500">게시글이 없습니다.</span>
       )}
+      <PostPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        paginate={paginate}
+      />
     </div>
   );
 }

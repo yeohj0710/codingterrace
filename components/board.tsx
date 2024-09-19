@@ -1,7 +1,7 @@
 "use client";
 
-import PostList from "@/components/postList";
 import Link from "next/link";
+import PostList from "@/components/postList";
 
 interface Post {
   title: string;
@@ -21,7 +21,7 @@ interface Post {
   } | null;
 }
 
-export default function Board({ posts }: { posts: Post[] }) {
+export default function Board() {
   return (
     <div className="w-full sm:w-[640px] lg:w-1/2 px-5 py-7 bg-white sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
       <div className="flex flex-row gap-[2%] mb-6 justify-between">
@@ -35,7 +35,7 @@ export default function Board({ posts }: { posts: Post[] }) {
           <span className="text-sm font-semibold text-white">글쓰기</span>
         </Link>
       </div>
-      <PostList posts={posts} />
+      <PostList />
     </div>
   );
 }

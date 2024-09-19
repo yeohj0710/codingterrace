@@ -96,6 +96,21 @@ export default function AddPost() {
               className="w-full p-3 border rounded-lg"
             />
           </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              이미지 추가
+            </label>
+            <button
+              type="button"
+              className="bg-green-400 text-white px-4 py-1.5 rounded-lg hover:bg-green-500"
+              onClick={() => {
+                // 이미지 추가 로직
+                console.log("hi");
+              }}
+            >
+              이미지 추가
+            </button>
+          </div>
           <div className="flex justify-end">
             {!isSubmitting ? (
               <button

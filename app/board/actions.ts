@@ -1,6 +1,9 @@
+"use server";
+
 import db from "@/lib/db";
 
-export async function getPosts() {
+export async function getPosts(page: number = 1, pageSize: number = 10) {
+  const skip = (page - 1) * pageSize;
   const posts = await db.post.findMany({
     select: {
       idx: true,
@@ -15,8 +18,10 @@ export async function getPosts() {
     orderBy: {
       created_at: "desc",
     },
-    take: 5,
+    skip,
+    take: pageSize,
   });
+  const totalPosts = await db.post.count();
   const processedPosts = posts.map((post) => {
     if (post.user) {
       return post;
@@ -28,5 +33,5 @@ export async function getPosts() {
       };
     }
   });
-  return processedPosts;
+  return { posts: processedPosts, totalPosts };
 }
