@@ -4,7 +4,7 @@ import Board from "@/components/board";
 
 export default async function Home() {
   return (
-    <div className="flex flex-col items-center gap-5 mb-10">
+    <div className="flex flex-col items-center gap-8 my-5 sm:my-8">
       <OpenExternalInKakao />
       <NotificationPanel />
       <Board />

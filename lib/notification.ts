@@ -85,10 +85,11 @@ const saveSubscriptionToServer = async (
 export const sendNotification = async (
   title: string,
   message: string,
-  type: string
+  type: string,
+  url: string
 ) => {
   try {
-    const payload = JSON.stringify({ title, message, type });
+    const payload = JSON.stringify({ title, message, type, url });
     const response = await fetch("/api/send-notification", {
       method: "POST",
       body: payload,

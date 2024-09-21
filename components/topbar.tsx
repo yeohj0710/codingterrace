@@ -13,8 +13,8 @@ export default async function TopBar() {
         <Link href="/board" className="font-bold">
           게시판
         </Link>
-        <Link href="/chat" className="font-bold">
-          실시간 채팅
+        <Link href="/notification" className="font-bold">
+          알림 보내기
         </Link>
       </div>
       {user ? (

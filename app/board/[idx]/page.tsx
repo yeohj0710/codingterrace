@@ -54,7 +54,7 @@ export default function Post({ params }: { params: { idx: string } }) {
   }
   return (
     <div className="flex flex-col items-center p-5">
-      <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 pt-8">
+      <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 pt-8">
         <span className="text-xl font-bold text-gray-800 mt-4">자유게시판</span>
         <hr className="border-gray-300 my-4" />
         <div className="bg-white shadow-md rounded-lg px-4 py-6">

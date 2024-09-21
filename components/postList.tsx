@@ -62,8 +62,8 @@ export default function PostList() {
                 : post.content}
             </p>
             <p className="text-sm text-gray-600 mt-2 hidden sm:block">
-              {post.content.length > 30
-                ? `${post.content.slice(0, 30)} ...`
+              {post.content.length > 40
+                ? `${post.content.slice(0, 40)} ...`
                 : post.content}
             </p>
             <div className="flex justify-between items-center mt-4 text-gray-600 text-xs">

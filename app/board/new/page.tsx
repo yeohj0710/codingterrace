@@ -25,7 +25,7 @@ export default function AddPost() {
   };
   return (
     <div className="flex flex-col items-center">
-      <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 mx-auto pt-8 sm:pb-10">
+      <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 mx-auto pt-8 sm:pb-10">
         <h1 className="text-xl font-bold ml-5 sm:ml-0 sm:mb-5">게시글 작성</h1>
         <form
           onSubmit={handleSubmit}
@@ -105,7 +105,6 @@ export default function AddPost() {
               className="bg-green-400 text-white px-4 py-1.5 rounded-lg hover:bg-green-500"
               onClick={() => {
                 // 이미지 추가 로직
-                console.log("hi");
               }}
             >
               이미지 추가

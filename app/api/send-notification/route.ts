@@ -10,11 +10,12 @@ webpush.setVapidDetails(
 
 export async function POST(request: Request) {
   try {
-    const { title, message } = await request.json();
+    const { title, message, url } = await request.json();
     const subscriptions = await db.subscription.findMany();
     const payload = JSON.stringify({
       title,
       message,
+      url,
     });
     const notificationPromises = subscriptions.map(async (subscription) => {
       const { endpoint, p256dh, auth } = subscription;
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
           });
         } else {
           console.error(
-            "Error sending notification to:",
+            "다음의 endpoint로 알림을 발송하는 데 실패하였습니다:",
             subscription.endpoint,
             error
           );
@@ -50,9 +51,9 @@ export async function POST(request: Request) {
       status: 200,
     });
   } catch (error) {
-    console.error("Error sending notification:", error);
+    console.error("알림 발송 중 에러가 발생하였습니다:", error);
     return NextResponse.json(
-      { error: "Error sending notification" },
+      { error: "알림 발송 중 에러 발생" },
       { status: 500 }
     );
   }

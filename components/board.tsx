@@ -5,7 +5,7 @@ import PostList from "@/components/postList";
 
 export default function Board() {
   return (
-    <div className="w-full sm:w-[640px] lg:w-1/2 px-5 py-7 bg-white sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
+    <div className="w-full sm:w-[640px] xl:w-1/2 px-5 py-7 bg-white sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
       <div className="flex flex-row gap-[2%] mb-6 justify-between">
         <Link href="/board" className="font-bold text-xl">
           자유게시판

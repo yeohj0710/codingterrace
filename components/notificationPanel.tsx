@@ -43,7 +43,8 @@ export default function NotificationPanel() {
   const handleNotificationSend = async () => {
     setIsSending(true);
     try {
-      await sendNotification(title, message, "main");
+      const url = "https://codingterrace.com";
+      await sendNotification(title, message, "main", url);
     } catch (error) {
       console.error("알림 발송 중 에러가 발생했습니다:", error);
     } finally {
@@ -55,7 +56,7 @@ export default function NotificationPanel() {
       {isAlertVisible && (
         <CustomAlert onClose={() => setIsAlertVisible(false)} />
       )}
-      <div className="flex flex-col w-full sm:w-[640px] lg:w-1/2 bg-white p-5 gap-2 relative">
+      <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 bg-white p-5 gap-2 relative sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
         <div className="flex justify-between items-center mb-1">
           <span className="text-lg font-bold">
             모든 사이트 이용자에게 알림 보내기
