@@ -2,8 +2,9 @@ self.addEventListener("push", function (event) {
   const data = event.data?.json();
   if (data) {
     const { title, message, url } = data;
+    const modifiedMessage = `${message}\n(알림을 누르면 코딩테라스로 이동해요.)`;
     const options = {
-      body: message,
+      body: modifiedMessage,
       icon: "/icon.png",
       data: { url },
     };
