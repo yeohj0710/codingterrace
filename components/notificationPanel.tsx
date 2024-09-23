@@ -43,6 +43,10 @@ export default function NotificationPanel() {
   const handleNotificationSend = async () => {
     setIsSending(true);
     try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        await registration.update();
+      }
       const url = "https://codingterrace.com";
       await sendNotification(title, message, "main", url);
     } catch (error) {
