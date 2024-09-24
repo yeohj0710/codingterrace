@@ -30,8 +30,16 @@ export default function NotificationPanel() {
     }
   };
   const handleNotificationToggle = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      window.alert("이 브라우저는 푸시 알림을 지원하지 않습니다.");
+      return;
+    }
     try {
       setIsProcessing(true);
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        await registration.update();
+      }
       await toggleSubscription("main", () => setIsAlertVisible(true));
       await checkNotificationStatus();
     } catch (error) {

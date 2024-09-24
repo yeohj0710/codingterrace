@@ -2,13 +2,17 @@
 
 import Input from "@/components/input";
 import { useEffect, useState } from "react";
-import { getUser, uploadPost } from "./actions";
+import { getUploadUrl, getUser, uploadPost } from "./actions";
+import { useFormState } from "react-dom";
 
 export default function AddPost() {
   const [user, setUser] = useState<any>(null);
   const [password, setPassword] = useState("");
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [state, action] = useFormState(uploadPost, null);
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await getUser();
@@ -16,12 +20,41 @@ export default function AddPost() {
     };
     fetchUser();
   }, []);
+  const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { files } = event.target;
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    const previewUrls: string[] = [];
+    const uploadedUrls: string[] = [];
+    for (const file of fileArray) {
+      const url = URL.createObjectURL(file);
+      previewUrls.push(url);
+      const { success, result } = await getUploadUrl();
+      if (!success) return;
+      const { uploadURL } = result;
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadResponse = await fetch(uploadURL, {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadResponse.ok) return;
+      const responseData = await uploadResponse.json();
+      const fileUrl = responseData.result.variants[0];
+      uploadedUrls.push(fileUrl);
+    }
+    setPreviews(previewUrls);
+    setImageUrls(uploadedUrls);
+  };
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    try {
-      await uploadPost(new FormData(e.currentTarget));
-    } catch (error) {}
+    const formData = new FormData(e.currentTarget);
+    imageUrls.forEach((url) => {
+      formData.append(`images[]`, url);
+    });
+    await uploadPost(null, formData);
+    setIsSubmitting(false);
   };
   return (
     <div className="flex flex-col items-center">
@@ -97,18 +130,35 @@ export default function AddPost() {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className="block text-gray-700 text-sm font-bold mb-4">
               이미지 추가
             </label>
-            <button
-              type="button"
-              className="bg-green-400 text-white px-4 py-1.5 rounded-lg hover:bg-green-500"
-              onClick={() => {
-                // 이미지 추가 로직
-              }}
+            <div className="flex flex-wrap gap-2">
+              {previews.map((preview, index) => (
+                <label
+                  key={index}
+                  className="border-2 aspect-square w-24 h-24 flex items-center justify-center flex-col text-neutral-300 border-neutral-300 rounded-md border-dashed cursor-pointer bg-center bg-cover"
+                  style={{
+                    backgroundImage: `url(${preview})`,
+                  }}
+                />
+              ))}
+            </div>
+            <label
+              htmlFor="image"
+              className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
             >
-              이미지 추가
-            </button>
+              이미지 선택
+            </label>
+            <input
+              onChange={onImageChange}
+              type="file"
+              id="image"
+              name="image"
+              accept="image/*"
+              multiple
+              className="hidden"
+            />
           </div>
           <div className="flex justify-end">
             {!isSubmitting ? (
