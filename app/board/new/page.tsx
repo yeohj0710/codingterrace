@@ -3,6 +3,7 @@
 import Input from "@/components/input";
 import { useEffect, useRef, useState } from "react";
 import { getUploadUrl, getUser, uploadPost } from "./actions";
+import { handlePaste } from "@/lib/handlePaste";
 
 export default function AddPost() {
   const [user, setUser] = useState<any>(null);
@@ -19,7 +20,7 @@ export default function AddPost() {
       setUser(userData);
     };
     fetchUser();
-  }, []);
+  }, [content, selectionStart, selectionEnd]);
   const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = event.target;
     if (!files || files.length === 0) return;
@@ -70,6 +71,21 @@ export default function AddPost() {
     const target = e.currentTarget;
     setSelectionStart(target.selectionStart);
     setSelectionEnd(target.selectionEnd);
+  };
+  const handlePasteEvent = async (
+    event: React.ClipboardEvent<HTMLTextAreaElement>
+  ) => {
+    await handlePaste(
+      event,
+      setIsUploadingImages,
+      content,
+      setContent,
+      selectionStart,
+      setSelectionStart,
+      selectionEnd,
+      setSelectionEnd,
+      contentRef
+    );
   };
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -155,6 +171,7 @@ export default function AddPost() {
               onSelect={handleContentSelect}
               onClick={handleContentSelect}
               onKeyUp={handleContentSelect}
+              onPaste={handlePasteEvent}
               rows={10}
               className="w-full p-3 border rounded-lg"
             />

@@ -1,0 +1,65 @@
+import { getUploadUrl } from "@/app/board/new/actions";
+
+export async function handlePaste(
+  event: React.ClipboardEvent<HTMLTextAreaElement>,
+  setIsUploadingImages: (isUploading: boolean) => void,
+  content: string,
+  setContent: (content: string) => void,
+  selectionStart: number,
+  setSelectionStart: (pos: number) => void,
+  selectionEnd: number,
+  setSelectionEnd: (pos: number) => void,
+  contentRef: React.RefObject<HTMLTextAreaElement>
+) {
+  event.preventDefault();
+  const clipboardData = event.clipboardData;
+  const items = clipboardData?.items;
+  if (items) {
+    for (const item of items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          setIsUploadingImages(true);
+          const { success, result } = await getUploadUrl();
+          if (!success) {
+            setIsUploadingImages(false);
+            return;
+          }
+          const { uploadURL } = result;
+          const formData = new FormData();
+          formData.append("file", file);
+          const uploadResponse = await fetch(uploadURL, {
+            method: "POST",
+            body: formData,
+          });
+          if (!uploadResponse.ok) {
+            setIsUploadingImages(false);
+            return;
+          }
+          const responseData = await uploadResponse.json();
+          const variants = responseData.result.variants;
+          const fileUrl = variants.find((url: string) =>
+            url.endsWith("/public")
+          );
+          const markdownImageTag = `![이미지 설명](${fileUrl})`;
+          const beforeSelection = content.substring(0, selectionStart);
+          const afterSelection = content.substring(selectionEnd);
+          const newContent =
+            beforeSelection + markdownImageTag + afterSelection;
+          setContent(newContent);
+          const newCursorPosition = selectionStart + markdownImageTag.length;
+          setSelectionStart(newCursorPosition);
+          setSelectionEnd(newCursorPosition);
+          setTimeout(() => {
+            if (contentRef.current) {
+              contentRef.current.selectionStart = newCursorPosition;
+              contentRef.current.selectionEnd = newCursorPosition;
+              contentRef.current.focus();
+            }
+          }, 0);
+          setIsUploadingImages(false);
+        }
+      }
+    }
+  }
+}
