@@ -43,14 +43,14 @@ export default function NotificationPanel() {
   };
   const handleNotificationToggle = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      window.alert("이 브라우저는 푸시 알림을 지원하지 않습니다.");
+      window.alert("이 브라우저는 알림을 지원하지 않습니다.");
       return;
     }
     try {
-      setIsProcessing(true);
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration) {
-        await registration.update();
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        setIsProcessing(true);
       }
       await toggleSubscription("main", () => setIsAlertVisible(true));
       await checkNotificationStatus();
@@ -90,7 +90,9 @@ export default function NotificationPanel() {
             className="text-gray-500"
             disabled={isProcessing}
           >
-            {isSubscribed ? (
+            {isProcessing ? (
+              <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
+            ) : isSubscribed ? (
               <BellIcon className="w-6 h-6 text-green-500" />
             ) : (
               <BellSlashIcon className="w-6 h-6 text-red-500" />
