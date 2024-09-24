@@ -101,6 +101,7 @@ export default function Post({ params }: { params: { idx: string } }) {
                   <img {...props} className="w-full" alt={props.alt} />
                 ),
               }}
+              className="break-all"
             >
               {post.content}
             </ReactMarkdown>

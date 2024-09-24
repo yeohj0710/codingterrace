@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 import typography from "@tailwindcss/typography";
+import lineClamp from "@tailwindcss/line-clamp";
 
 const config: Config = {
   content: [
@@ -16,7 +17,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [typography],
+  plugins: [typography, lineClamp], // 플러그인 배열에 추가한 부분
 };
 
 export default config;

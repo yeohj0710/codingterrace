@@ -17,8 +17,20 @@ export default function NotificationPanel() {
   const [isSending, setIsSending] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   useEffect(() => {
-    requestNotificationPermission(() => setIsAlertVisible(true));
-    checkNotificationStatus();
+    const registerServiceWorker = async () => {
+      if (!("serviceWorker" in navigator)) {
+        window.alert("이 브라우저에서는 알림을 지원하지 않습니다.");
+        return;
+      }
+      try {
+        await navigator.serviceWorker.register("/sw.js");
+        await requestNotificationPermission(() => setIsAlertVisible(true));
+        await checkNotificationStatus();
+      } catch (error) {
+        window.alert(`service worker 등록에 실패했습니다: ${error}`);
+      }
+    };
+    registerServiceWorker();
   }, []);
   const checkNotificationStatus = async () => {
     try {
@@ -26,7 +38,7 @@ export default function NotificationPanel() {
       const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
     } catch (error) {
-      console.error("구독 상태 확인 중 에러가 발생했습니다:", error);
+      window.alert(`구독 상태 확인 중 에러가 발생했습니다: ${error}`);
     }
   };
   const handleNotificationToggle = async () => {
@@ -43,7 +55,7 @@ export default function NotificationPanel() {
       await toggleSubscription("main", () => setIsAlertVisible(true));
       await checkNotificationStatus();
     } catch (error) {
-      console.error("알림 on/off 전환 중 에러가 발생했습니다:", error);
+      window.alert(`알림 on/off 전환 중 에러가 발생했습니다: ${error}`);
     } finally {
       setIsProcessing(false);
     }
@@ -58,7 +70,7 @@ export default function NotificationPanel() {
       const url = "https://codingterrace.com";
       await sendNotification(title, message, "main", url);
     } catch (error) {
-      console.error("알림 발송 중 에러가 발생했습니다:", error);
+      window.alert(`알림 발송 중 에러가 발생했습니다: ${error}`);
     } finally {
       setIsSending(false);
     }
