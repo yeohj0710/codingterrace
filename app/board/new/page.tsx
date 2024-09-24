@@ -3,16 +3,15 @@
 import Input from "@/components/input";
 import { useEffect, useState } from "react";
 import { getUploadUrl, getUser, uploadPost } from "./actions";
-import { useFormState } from "react-dom";
 
 export default function AddPost() {
   const [user, setUser] = useState<any>(null);
   const [password, setPassword] = useState("");
   const [content, setContent] = useState("");
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previews, setPreviews] = useState<string[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [state, action] = useFormState(uploadPost, null);
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await getUser();
@@ -26,11 +25,15 @@ export default function AddPost() {
     const fileArray = Array.from(files);
     const previewUrls: string[] = [];
     const uploadedUrls: string[] = [];
+    setIsUploadingImages(true);
     for (const file of fileArray) {
       const url = URL.createObjectURL(file);
       previewUrls.push(url);
       const { success, result } = await getUploadUrl();
-      if (!success) return;
+      if (!success) {
+        setIsUploadingImages(false);
+        return;
+      }
       const { uploadURL } = result;
       const formData = new FormData();
       formData.append("file", file);
@@ -38,16 +41,24 @@ export default function AddPost() {
         method: "POST",
         body: formData,
       });
-      if (!uploadResponse.ok) return;
+      if (!uploadResponse.ok) {
+        setIsUploadingImages(false);
+        return;
+      }
       const responseData = await uploadResponse.json();
       const fileUrl = responseData.result.variants[0];
       uploadedUrls.push(fileUrl);
     }
     setPreviews(previewUrls);
     setImageUrls(uploadedUrls);
+    setIsUploadingImages(false);
   };
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isUploadingImages) {
+      alert("이미지 업로드 중입니다. 잠시만 기다려 주세요.");
+      return;
+    }
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     imageUrls.forEach((url) => {
