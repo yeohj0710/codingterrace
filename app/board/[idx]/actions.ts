@@ -36,7 +36,8 @@ export async function getPost(idx: number) {
           nickname: true,
         },
       },
-      images: true,
+      // 이미지 정보 가져오기 제거
+      // images: true,
     },
   });
   return post;

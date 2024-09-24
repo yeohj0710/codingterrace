@@ -43,8 +43,6 @@ export async function uploadPost(_: any, formData: FormData) {
     password: formData.get("password"),
     content: formData.get("content"),
   };
-  const imageUrls = formData.getAll("images[]") as string[];
-  console.log("Image URLs to Save:", imageUrls);
   const result = postSchema.safeParse(data);
   if (!result.success) {
     return result.error.flatten();
@@ -54,12 +52,6 @@ export async function uploadPost(_: any, formData: FormData) {
     title: result.data.title,
     content: result.data.content,
     category: "board",
-    images: {
-      create: imageUrls.map((url, index) => ({
-        url: url,
-        position: index,
-      })),
-    },
   };
   if (session?.idx) {
     postData.user = {
@@ -78,7 +70,6 @@ export async function uploadPost(_: any, formData: FormData) {
       password: result.data.password || "",
     };
   }
-  console.log("Post Data to Save:", postData);
   const post = await db.post.create({
     data: postData,
     select: {
@@ -99,6 +90,5 @@ export async function getUploadUrl() {
     }
   );
   const data = await response.json();
-  console.log("Cloudflare API Response:", response, data);
   return data;
 }

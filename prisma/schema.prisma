@@ -27,21 +27,10 @@ model Post {
   ip         String?
   password   String?
   content    String
-  images     Image[]
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   userIdx Int?
-}
-
-model Image {
-  idx        Int      @id @default(autoincrement())
-  post       Post     @relation(fields: [postIdx], references: [idx])
-  url        String
-  position   Int
-  created_at DateTime @default(now())
-
-  postIdx Int
 }
 
 model Subscription {

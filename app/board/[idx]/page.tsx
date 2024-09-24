@@ -3,11 +3,17 @@
 import { useEffect, useState } from "react";
 import { getPost, getIsOwner, deletePost, Redirect } from "./actions";
 import { categoryToName } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import rehypeSanitize from "rehype-sanitize";
+import { customSchema } from "@/lib/customSchema";
 
 export default function Post({ params }: { params: { idx: string } }) {
   const [post, setPost] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       const idx = Number(params.idx);
@@ -28,6 +34,7 @@ export default function Post({ params }: { params: { idx: string } }) {
     };
     fetchData();
   }, [params.idx]);
+
   const handleDelete = async () => {
     if (post.password !== null && post.password !== "") {
       const password = window.prompt("게시글 비밀번호를 입력해 주세요.");
@@ -49,9 +56,11 @@ export default function Post({ params }: { params: { idx: string } }) {
       }
     }
   };
+
   if (!post) {
     return null;
   }
+
   return (
     <div className="flex flex-col items-center p-5">
       <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 pt-8">
@@ -83,21 +92,19 @@ export default function Post({ params }: { params: { idx: string } }) {
             </span>
           </div>
           <hr className="border-gray-300 my-4" />
-          <p className="text-md text-gray-800 leading-relaxed whitespace-pre-line">
-            {post.content}
-          </p>
-          {Array.isArray(post.images) && post.images.length > 0 && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {post.images.map((image: any) => (
-                <img
-                  key={image.idx}
-                  src={image.url}
-                  alt={`image-${image.idx}`}
-                  className="w-full h-auto object-cover rounded-lg"
-                />
-              ))}
-            </div>
-          )}
+          <div className="prose max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              rehypePlugins={[[rehypeSanitize, customSchema]]}
+              components={{
+                img: ({ node, ...props }) => (
+                  <img {...props} className="w-full" alt={props.alt} />
+                ),
+              }}
+            >
+              {post.content}
+            </ReactMarkdown>
+          </div>
           {(isOwner || (post.password !== null && post.password !== "")) && (
             <div className="flex justify-end mt-4">
               <button

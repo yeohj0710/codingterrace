@@ -1,7 +1,7 @@
 "use client";
 
 import Input from "@/components/input";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getUploadUrl, getUser, uploadPost } from "./actions";
 
 export default function AddPost() {
@@ -10,8 +10,9 @@ export default function AddPost() {
   const [content, setContent] = useState("");
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [selectionStart, setSelectionStart] = useState(0);
+  const [selectionEnd, setSelectionEnd] = useState(0);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await getUser();
@@ -23,12 +24,8 @@ export default function AddPost() {
     const { files } = event.target;
     if (!files || files.length === 0) return;
     const fileArray = Array.from(files);
-    const previewUrls: string[] = [];
-    const uploadedUrls: string[] = [];
     setIsUploadingImages(true);
     for (const file of fileArray) {
-      const url = URL.createObjectURL(file);
-      previewUrls.push(url);
       const { success, result } = await getUploadUrl();
       if (!success) {
         setIsUploadingImages(false);
@@ -46,12 +43,33 @@ export default function AddPost() {
         return;
       }
       const responseData = await uploadResponse.json();
-      const fileUrl = responseData.result.variants[0];
-      uploadedUrls.push(fileUrl);
+      const variants = responseData.result.variants;
+      const fileUrl = variants.find((url: string) => url.endsWith("/public"));
+      const markdownImageTag = `![이미지 설명](${fileUrl})`;
+      const beforeSelection = content.substring(0, selectionStart);
+      const afterSelection = content.substring(selectionEnd);
+      const newContent = beforeSelection + markdownImageTag + afterSelection;
+      setContent(newContent);
+      const newCursorPosition = selectionStart + markdownImageTag.length;
+      setSelectionStart(newCursorPosition);
+      setSelectionEnd(newCursorPosition);
+      setTimeout(() => {
+        if (contentRef.current) {
+          contentRef.current.selectionStart = newCursorPosition;
+          contentRef.current.selectionEnd = newCursorPosition;
+          contentRef.current.focus();
+        }
+      }, 0);
     }
-    setPreviews(previewUrls);
-    setImageUrls(uploadedUrls);
     setIsUploadingImages(false);
+    event.target.value = "";
+  };
+  const handleContentSelect = (
+    e: React.SyntheticEvent<HTMLTextAreaElement>
+  ) => {
+    const target = e.currentTarget;
+    setSelectionStart(target.selectionStart);
+    setSelectionEnd(target.selectionEnd);
   };
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,9 +79,6 @@ export default function AddPost() {
     }
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
-    imageUrls.forEach((url) => {
-      formData.append(`images[]`, url);
-    });
     await uploadPost(null, formData);
     setIsSubmitting(false);
   };
@@ -131,11 +146,15 @@ export default function AddPost() {
               내용
             </label>
             <textarea
+              ref={contentRef}
               name="content"
               placeholder="내용을 입력해 주세요."
               required
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onSelect={handleContentSelect}
+              onClick={handleContentSelect}
+              onKeyUp={handleContentSelect}
               rows={10}
               className="w-full p-3 border rounded-lg"
             />
@@ -144,17 +163,6 @@ export default function AddPost() {
             <label className="block text-gray-700 text-sm font-bold mb-4">
               이미지 추가
             </label>
-            <div className="flex flex-wrap gap-2">
-              {previews.map((preview, index) => (
-                <label
-                  key={index}
-                  className="border-2 aspect-square w-24 h-24 flex items-center justify-center flex-col text-neutral-300 border-neutral-300 rounded-md border-dashed cursor-pointer bg-center bg-cover"
-                  style={{
-                    backgroundImage: `url(${preview})`,
-                  }}
-                />
-              ))}
-            </div>
             <label
               htmlFor="image"
               className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
