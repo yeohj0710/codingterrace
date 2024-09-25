@@ -1,19 +1,16 @@
-import { getUploadUrl } from "@/app/board/new/actions";
+import { getUploadUrl } from "@/app/actions";
 
 export async function handlePaste(
   event: React.ClipboardEvent<HTMLTextAreaElement>,
   setIsUploadingImages: (isUploading: boolean) => void,
   content: string,
   setContent: (content: string) => void,
-  selectionStart: number,
-  setSelectionStart: (pos: number) => void,
-  selectionEnd: number,
-  setSelectionEnd: (pos: number) => void,
   contentRef: React.RefObject<HTMLTextAreaElement>
 ) {
-  event.preventDefault();
   const clipboardData = event.clipboardData;
   const items = clipboardData?.items;
+  const pastedText = clipboardData.getData("text");
+  if (pastedText) return;
   if (items) {
     for (const item of items) {
       if (item.kind === "file" && item.type.startsWith("image/")) {
@@ -42,14 +39,15 @@ export async function handlePaste(
             url.endsWith("/public")
           );
           const markdownImageTag = `![이미지 설명](${fileUrl})`;
-          const beforeSelection = content.substring(0, selectionStart);
-          const afterSelection = content.substring(selectionEnd);
+          const currentSelectionStart = contentRef.current?.selectionStart ?? 0;
+          const currentSelectionEnd = contentRef.current?.selectionEnd ?? 0;
+          const beforeSelection = content.substring(0, currentSelectionStart);
+          const afterSelection = content.substring(currentSelectionEnd);
           const newContent =
             beforeSelection + markdownImageTag + afterSelection;
           setContent(newContent);
-          const newCursorPosition = selectionStart + markdownImageTag.length;
-          setSelectionStart(newCursorPosition);
-          setSelectionEnd(newCursorPosition);
+          const newCursorPosition =
+            currentSelectionStart + markdownImageTag.length;
           setTimeout(() => {
             if (contentRef.current) {
               contentRef.current.selectionStart = newCursorPosition;

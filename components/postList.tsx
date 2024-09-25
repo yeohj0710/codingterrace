@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import PostPagination from "@/components/postPagination";
-import { getPosts } from "@/app/board/actions";
+import { getPosts } from "@/app/actions";
 import removeMarkdown from "remove-markdown";
 
 interface Post {
@@ -24,22 +24,35 @@ interface Post {
   } | null;
 }
 
-export default function PostList() {
+interface PostListProps {
+  category: string;
+  basePath: string;
+  postsPerPage: number;
+}
+
+export default function PostList({
+  category,
+  basePath,
+  postsPerPage,
+}: PostListProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
-  const postsPerPage = 10;
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
-      const { posts, totalPosts } = await getPosts(currentPage, postsPerPage);
+      const { posts, totalPosts } = await getPosts(
+        category,
+        currentPage,
+        postsPerPage
+      );
       setPosts(posts);
       setTotalPages(Math.ceil(totalPosts / postsPerPage));
       setLoading(false);
     };
     fetchPosts();
-  }, [currentPage]);
+  }, [category, currentPage]);
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   function extractFirstImageUrl(content: string): string | null {
     const imageRegex = /!\[.*?\]\((.*?)\)/;
@@ -53,7 +66,7 @@ export default function PostList() {
     <div className="w-full bg-white">
       {loading ? (
         <div className="animate-pulse space-y-4">
-          {[...Array(10)].map((_, index) => (
+          {[...Array(postsPerPage)].map((_, index) => (
             <div key={index} className="h-28 bg-gray-200 rounded-md mb-2"></div>
           ))}
         </div>
@@ -64,7 +77,7 @@ export default function PostList() {
           return (
             <Link
               key={post.idx}
-              href={`/board/${post.idx}`}
+              href={`${basePath}/${post.idx}`}
               className="block mb-4 p-4 bg-gray-100 rounded hover:bg-gray-200"
             >
               <div className="flex">

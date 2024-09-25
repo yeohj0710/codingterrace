@@ -1,9 +1,10 @@
 export function categoryToName(category: string): string {
-  const categories = ["board"];
-  const names = ["자유게시판"];
-  const index = categories.indexOf(category);
-  if (index === -1) {
-    return "";
+  switch (category) {
+    case "board":
+      return "자유게시판";
+    case "technote":
+      return "기술노트";
+    default:
+      return "자유게시판";
   }
-  return names[index];
 }
