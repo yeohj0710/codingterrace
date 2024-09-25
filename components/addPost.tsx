@@ -14,6 +14,7 @@ export default function AddPost({ category, basePath }: AddPostProps) {
   const [user, setUser] = useState<any>(null);
   const [password, setPassword] = useState("");
   const [content, setContent] = useState("");
+  const [isComposing, setIsComposing] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
@@ -24,11 +25,28 @@ export default function AddPost({ category, basePath }: AddPostProps) {
     };
     fetchUser();
   }, [content]);
+  const handleContentChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    setContent(event.target.value);
+  };
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+  const handleCompositionEnd = (
+    event: React.CompositionEvent<HTMLTextAreaElement>
+  ) => {
+    setIsComposing(false);
+    const value = (event.target as HTMLTextAreaElement).value;
+    setContent(value);
+  };
   const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = event.target;
     if (!files || files.length === 0) return;
     const fileArray = Array.from(files);
     setIsUploadingImages(true);
+    let currentSelectionStart = contentRef.current?.selectionStart;
+    let currentSelectionEnd = contentRef.current?.selectionEnd;
     for (const file of fileArray) {
       const { success, result } = await getUploadUrl();
       if (!success) {
@@ -49,23 +67,19 @@ export default function AddPost({ category, basePath }: AddPostProps) {
       const responseData = await uploadResponse.json();
       const variants = responseData.result.variants;
       const fileUrl = variants.find((url: string) => url.endsWith("/public"));
-      const markdownImageTag = `![이미지 설명](${fileUrl})\n`;
-      let currentSelectionStart = contentRef.current?.selectionStart;
-      let currentSelectionEnd = contentRef.current?.selectionEnd;
-      if (
-        typeof currentSelectionStart !== "number" ||
-        typeof currentSelectionEnd !== "number"
-      ) {
-        currentSelectionStart = content.length;
-        currentSelectionEnd = content.length;
+      if (!fileUrl) {
+        setIsUploadingImages(false);
+        return;
       }
-      const beforeSelection = content.substring(0, currentSelectionStart);
-      const afterSelection = content.substring(currentSelectionEnd);
+      const markdownImageTag = `![이미지 설명](${fileUrl})\n`;
+      const beforeSelection = content.substring(0, currentSelectionStart!);
+      const afterSelection = content.substring(currentSelectionEnd!);
       const newContent = beforeSelection + markdownImageTag + afterSelection;
       setContent(newContent);
-      const newCursorPosition = currentSelectionStart + markdownImageTag.length;
       setTimeout(() => {
         if (contentRef.current) {
+          const newCursorPosition =
+            currentSelectionStart! + markdownImageTag.length;
           contentRef.current.selectionStart = newCursorPosition;
           contentRef.current.selectionEnd = newCursorPosition;
           contentRef.current.focus();
@@ -166,7 +180,9 @@ export default function AddPost({ category, basePath }: AddPostProps) {
               placeholder="내용을 입력해 주세요."
               required
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={handleContentChange}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
               onPaste={handlePasteEvent}
               rows={10}
               className="w-full p-3 border rounded-lg"
@@ -176,21 +192,23 @@ export default function AddPost({ category, basePath }: AddPostProps) {
             <label className="block text-gray-700 text-sm font-bold mb-4">
               이미지 추가
             </label>
-            <label
-              htmlFor="image"
-              className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
-            >
-              이미지 선택
-            </label>
-            <input
-              onChange={onImageChange}
-              type="file"
-              id="image"
-              name="image"
-              accept="image/*"
-              multiple
-              className="hidden"
-            />
+            <div className="relative inline-block">
+              <label
+                htmlFor="image"
+                className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
+              >
+                이미지 선택
+              </label>
+              <input
+                onChange={onImageChange}
+                type="file"
+                id="image"
+                name="image"
+                accept="image/*"
+                multiple
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
           </div>
           <div className="flex justify-end">
             <button
