@@ -19,7 +19,6 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
   const [post, setPost] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
   useEffect(() => {
     const fetchData = async () => {
       const postIdx = Number(idx);
@@ -40,7 +39,6 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
     };
     fetchData();
   }, [idx, category, basePath]);
-
   const handleDelete = async () => {
     if (post.password !== null && post.password !== "") {
       const password = window.prompt("게시글 비밀번호를 입력해 주세요.");
@@ -62,13 +60,11 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
       }
     }
   };
-
   if (!post) {
     return null;
   }
-
   return (
-    <div className="flex flex-col items-center p-5">
+    <div className="flex flex-col items-center px-5 pt-0 pb-20">
       <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 pt-8">
         <span className="text-xl font-bold text-gray-800 mt-4">
           {categoryToName(post.category)}
@@ -109,9 +105,11 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                   <img {...props} className="w-full" alt={props.alt} />
                 ),
               }}
-              className="break-all"
+              className="break-all whitespace-pre-wrap"
             >
-              {post.content}
+              {post.content.replace(/\n{2,}/g, (match: any) => {
+                return Array(match.length).fill("<br>").join("");
+              })}
             </ReactMarkdown>
           </div>
           {(isOwner || (post.password !== null && post.password !== "")) && (

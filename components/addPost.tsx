@@ -28,6 +28,7 @@ export default function AddPost({ category, basePath }: AddPostProps) {
   const handleContentChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
+    console.log("입력 내용:", event.target.value);
     setContent(event.target.value);
   };
   const handleCompositionStart = () => {
@@ -174,19 +175,30 @@ export default function AddPost({ category, basePath }: AddPostProps) {
             <label className="block text-gray-700 text-sm font-bold mb-2">
               내용
             </label>
-            <textarea
-              ref={contentRef}
-              name="content"
-              placeholder="내용을 입력해 주세요."
-              required
-              value={content}
-              onChange={handleContentChange}
-              onCompositionStart={handleCompositionStart}
-              onCompositionEnd={handleCompositionEnd}
-              onPaste={handlePasteEvent}
-              rows={10}
-              className="w-full p-3 border rounded-lg"
-            />
+            <div className="relative">
+              <textarea
+                ref={contentRef}
+                name="content"
+                placeholder="내용을 입력해 주세요."
+                required
+                value={content}
+                onChange={handleContentChange}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
+                onPaste={handlePasteEvent}
+                rows={10}
+                className="w-full p-3 border rounded-lg"
+                disabled={isUploadingImages}
+              />
+              {isUploadingImages && (
+                <div className="absolute inset-0 flex justify-center items-center bg-opacity-75 bg-white">
+                  <div className="w-5 h-5 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
+                  <span className="ml-3 text-lg text-gray-700">
+                    이미지 업로드 중...
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-4">
