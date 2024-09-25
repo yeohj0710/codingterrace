@@ -38,9 +38,17 @@ export async function handlePaste(
           const fileUrl = variants.find((url: string) =>
             url.endsWith("/public")
           );
-          const markdownImageTag = `![이미지 설명](${fileUrl})`;
-          const currentSelectionStart = contentRef.current?.selectionStart ?? 0;
-          const currentSelectionEnd = contentRef.current?.selectionEnd ?? 0;
+          const markdownImageTag = `![이미지 설명](${fileUrl})\n`;
+          let currentSelectionStart = contentRef.current?.selectionStart;
+          let currentSelectionEnd = contentRef.current?.selectionEnd;
+
+          if (
+            typeof currentSelectionStart !== "number" ||
+            typeof currentSelectionEnd !== "number"
+          ) {
+            currentSelectionStart = content.length;
+            currentSelectionEnd = content.length;
+          }
           const beforeSelection = content.substring(0, currentSelectionStart);
           const afterSelection = content.substring(currentSelectionEnd);
           const newContent =
