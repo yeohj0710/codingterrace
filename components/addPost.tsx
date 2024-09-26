@@ -48,7 +48,13 @@ export default function AddPost({ category, basePath }: AddPostProps) {
     let currentSelectionStart = contentRef.current?.selectionStart;
     let currentSelectionEnd = contentRef.current?.selectionEnd;
     for (const file of fileArray) {
-      const { success, result } = await getUploadUrl();
+      const { success, result, error } = await getUploadUrl();
+      if (!success) {
+        console.error("Failed to get upload URL:", error);
+        alert("이미지 업로드 URL을 가져오는데 실패했습니다.");
+        setIsUploadingImages(false);
+        return;
+      }
       if (!success) {
         setIsUploadingImages(false);
         return;
