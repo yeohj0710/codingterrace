@@ -12,13 +12,13 @@ export default async function Home() {
         basePath="/technote"
         postsPerPage={3}
       />
-      <NotificationPanel />
       <BoardComponent
         category="board"
         title="자유게시판"
         basePath="/board"
         postsPerPage={10}
       />
+      <NotificationPanel />
       <div className="text-7xl mt-10">🍀</div>
     </div>
   );

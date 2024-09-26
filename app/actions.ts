@@ -22,6 +22,21 @@ export async function getUser() {
   });
 }
 
+export async function isUserOperator() {
+  const session = await getSession();
+  if (!session?.idx) {
+    return false;
+  }
+  const user = await db.user.findUnique({
+    where: { idx: session.idx },
+  });
+  if (!user) {
+    return false;
+  }
+  const operators = process.env.OPERATORS?.split(",") || [];
+  return operators.includes(user.id);
+}
+
 export async function getIsOwner(userIdx: number) {
   const session = await getSession();
   if (!session.idx) {

@@ -73,6 +73,10 @@ export default function PostList({
             <div key={index} className="h-28 bg-gray-200 rounded-md mb-2"></div>
           ))}
         </div>
+      ) : posts.length === 0 ? (
+        <div className="text-center text-gray-500 py-10">
+          게시글이 없습니다.
+        </div>
       ) : (
         posts.map((post: Post) => {
           const imageUrl = extractFirstImageUrl(post.content);
