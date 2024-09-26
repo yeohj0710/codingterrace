@@ -28,7 +28,6 @@ export default function AddPost({ category, basePath }: AddPostProps) {
   const handleContentChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
-    console.log("입력 내용:", event.target.value);
     setContent(event.target.value);
   };
   const handleCompositionStart = () => {
