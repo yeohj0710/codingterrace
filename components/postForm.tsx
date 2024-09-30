@@ -1,61 +1,106 @@
 "use client";
 
-import Input from "@/components/input";
 import { useEffect, useRef, useState } from "react";
-import { getUploadUrl, getUser, uploadPost } from "@/app/actions";
+import Input from "@/components/input";
+import { getUser } from "@/lib/auth";
+import { getPost, uploadPost, updatePost } from "@/lib/post";
+import { getUploadUrl } from "@/lib/upload";
 import { handlePaste } from "@/lib/handlePaste";
+import { useRouter } from "next/navigation";
 
-interface AddPostProps {
+interface PostFormProps {
+  mode: "add" | "edit";
+  idx?: string; // edit 모드일 경우 게시글 idx
   category: string;
   basePath: string;
 }
 
-export default function AddPost({ category, basePath }: AddPostProps) {
+export default function PostForm({
+  mode,
+  idx,
+  category,
+  basePath,
+}: PostFormProps) {
   const [user, setUser] = useState<any>(null);
+  const [post, setPost] = useState<any>(null);
+  const [title, setTitle] = useState("");
+  const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [content, setContent] = useState("");
-  const [isComposing, setIsComposing] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
+  const router = useRouter();
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await getUser();
       setUser(userData);
     };
+    const fetchData = async () => {
+      if (mode === "edit" && idx) {
+        const postData = await getPost(Number(idx), category);
+        if (!postData) {
+          alert("존재하지 않는 게시물입니다.");
+          router.push(basePath);
+          return;
+        }
+        setPost(postData);
+        setTitle(postData.title);
+        setContent(postData.content);
+        setNickname(postData.nickname ?? "");
+        if (postData.user) {
+          if (!user || user.idx !== postData.user.idx) {
+            alert("게시글을 수정할 권한이 없습니다.");
+            router.push(basePath);
+            return;
+          }
+        } else {
+          if (postData.password) {
+            const passwordInput =
+              window.prompt("게시글 비밀번호를 입력해 주세요.");
+            if (passwordInput !== postData.password) {
+              alert("비밀번호가 올바르지 않습니다.");
+              router.push(basePath);
+              return;
+            }
+            setPassword(passwordInput!);
+          } else {
+            alert("게시글을 수정할 권한이 없습니다.");
+            router.push(basePath);
+            return;
+          }
+        }
+      }
+    };
     fetchUser();
-  }, [content]);
+    fetchData();
+  }, [mode, idx, category, basePath, router, user]);
   const handleContentChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
     setContent(event.target.value);
   };
-  const handleCompositionStart = () => {
-    setIsComposing(true);
+  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(event.target.value);
   };
-  const handleCompositionEnd = (
-    event: React.CompositionEvent<HTMLTextAreaElement>
-  ) => {
-    setIsComposing(false);
-    const value = (event.target as HTMLTextAreaElement).value;
-    setContent(value);
+  const handleNicknameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setNickname(event.target.value);
+  };
+  const handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(event.target.value);
   };
   const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = event.target;
     if (!files || files.length === 0) return;
     const fileArray = Array.from(files);
     setIsUploadingImages(true);
-    let currentSelectionStart = contentRef.current?.selectionStart;
-    let currentSelectionEnd = contentRef.current?.selectionEnd;
+    let currentSelectionStart = contentRef.current?.selectionStart || 0;
+    let currentSelectionEnd = contentRef.current?.selectionEnd || 0;
     for (const file of fileArray) {
       const { success, result, error } = await getUploadUrl();
       if (!success) {
         console.error("Failed to get upload URL:", error);
         alert("이미지 업로드 URL을 가져오는데 실패했습니다.");
-        setIsUploadingImages(false);
-        return;
-      }
-      if (!success) {
         setIsUploadingImages(false);
         return;
       }
@@ -78,14 +123,14 @@ export default function AddPost({ category, basePath }: AddPostProps) {
         return;
       }
       const markdownImageTag = `![이미지 설명](${fileUrl})\n`;
-      const beforeSelection = content.substring(0, currentSelectionStart!);
-      const afterSelection = content.substring(currentSelectionEnd!);
+      const beforeSelection = content.substring(0, currentSelectionStart);
+      const afterSelection = content.substring(currentSelectionEnd);
       const newContent = beforeSelection + markdownImageTag + afterSelection;
       setContent(newContent);
       setTimeout(() => {
         if (contentRef.current) {
           const newCursorPosition =
-            currentSelectionStart! + markdownImageTag.length;
+            currentSelectionStart + markdownImageTag.length;
           contentRef.current.selectionStart = newCursorPosition;
           contentRef.current.selectionEnd = newCursorPosition;
           contentRef.current.focus();
@@ -114,17 +159,30 @@ export default function AddPost({ category, basePath }: AddPostProps) {
     }
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
-    await uploadPost(category, basePath, formData);
+    if (mode === "add") {
+      await uploadPost(category, basePath, formData);
+    } else if (mode === "edit" && idx) {
+      formData.append("idx", idx);
+      await updatePost(formData);
+    }
     setIsSubmitting(false);
   };
+  if (mode === "edit" && !post) {
+    return null;
+  }
   return (
     <div className="flex flex-col items-center">
       <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 mx-auto pt-8 sm:pb-10">
-        <h1 className="text-xl font-bold ml-5 sm:ml-0 sm:mb-5">게시글 작성</h1>
+        <h1 className="text-xl font-bold ml-5 sm:ml-0 sm:mb-5">
+          {mode === "add" ? "게시글 작성" : "게시글 수정"}
+        </h1>
         <form
           onSubmit={handleSubmit}
           className="bg-white p-6 rounded-lg shadow-lg"
         >
+          {mode === "edit" && idx && (
+            <input type="hidden" name="idx" value={idx} />
+          )}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">
               제목
@@ -135,6 +193,8 @@ export default function AddPost({ category, basePath }: AddPostProps) {
               required
               placeholder="제목을 입력해 주세요."
               className="w-full p-2 border rounded-lg"
+              value={title}
+              onChange={handleTitleChange}
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mb-4">
@@ -152,13 +212,17 @@ export default function AddPost({ category, basePath }: AddPostProps) {
                   type="text"
                   placeholder="닉네임을 입력해 주세요. (선택)"
                   className="w-full px-2 py-1.5 border rounded-lg"
+                  value={nickname}
+                  onChange={handleNicknameChange}
                 />
               )}
             </div>
             <div className="w-full sm:w-1/2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 비밀번호{" "}
-                <label className="text-xs">(비회원 게시글 삭제 시 필요) </label>
+                <label className="text-xs">
+                  (비회원 게시글 {mode === "add" ? "삭제" : "수정"} 시 필요)
+                </label>
               </label>
               {user ? (
                 <div className="px-2 py-1.5 border rounded-lg text-gray-500 bg-gray-200">
@@ -168,10 +232,11 @@ export default function AddPost({ category, basePath }: AddPostProps) {
                 <input
                   name="password"
                   type="password"
-                  placeholder="비밀번호를 입력해 주세요. (선택)"
+                  placeholder="비밀번호를 입력해 주세요."
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   className="w-full px-2 py-1.5 border rounded-lg"
+                  required={mode === "edit"}
                 />
               )}
             </div>
@@ -188,8 +253,6 @@ export default function AddPost({ category, basePath }: AddPostProps) {
                 required
                 value={content}
                 onChange={handleContentChange}
-                onCompositionStart={handleCompositionStart}
-                onCompositionEnd={handleCompositionEnd}
                 onPaste={handlePasteEvent}
                 rows={10}
                 className="w-full p-3 border rounded-lg"
@@ -239,11 +302,13 @@ export default function AddPost({ category, basePath }: AddPostProps) {
             >
               {isSubmitting ? (
                 <>
-                  등록 중
+                  {mode === "add" ? "등록 중" : "수정 중"}
                   <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
                 </>
-              ) : (
+              ) : mode === "add" ? (
                 "등록"
+              ) : (
+                "수정"
               )}
             </button>
           </div>

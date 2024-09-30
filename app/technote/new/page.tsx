@@ -1,7 +1,7 @@
 "use client";
 
-import AddPost from "@/components/addPost";
+import PostForm from "@/components/postForm";
 
 export default function AddPostPage() {
-  return <AddPost category="technote" basePath="/technote" />;
+  return <PostForm mode="add" category="technote" basePath="/technote" />;
 }

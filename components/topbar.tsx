@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getUser } from "@/app/actions";
 import { MenuLinks, UserLink } from "./menuLinks";
+import { getUser } from "@/lib/auth";
 
 export default function TopBar() {
   const [user, setUser] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
   useEffect(() => {
     async function fetchUser() {
       const userData: any = await getUser();
@@ -16,11 +15,9 @@ export default function TopBar() {
     }
     fetchUser();
   }, []);
-
   const closeDrawer = () => {
     setIsDrawerOpen(false);
   };
-
   return (
     <>
       <header className="flex items-center justify-between fixed top-0 w-full bg-white z-50 h-14 shadow-md px-6">
@@ -32,7 +29,7 @@ export default function TopBar() {
             🍀 코딩테라스
           </Link>
           <div className="hidden sm:flex">
-            <div className="hidden sm:flex gap-4">
+            <div className="hidden sm:flex gap-5">
               <MenuLinks />
             </div>
           </div>

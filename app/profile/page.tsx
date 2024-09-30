@@ -1,6 +1,6 @@
-import getUser from "@/lib/getUser";
 import getSession from "@/lib/session";
 import { redirect } from "next/navigation";
+import { getUser } from "@/lib/auth";
 
 export default async function Profile() {
   const user = await getUser();

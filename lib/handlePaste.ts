@@ -1,4 +1,4 @@
-import { getUploadUrl } from "@/app/actions";
+import { getUploadUrl } from "./upload";
 
 export async function handlePaste(
   event: React.ClipboardEvent<HTMLTextAreaElement>,

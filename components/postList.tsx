@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import PostPagination from "@/components/postPagination";
-import { getPosts } from "@/app/actions";
 import removeMarkdown from "remove-markdown";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ko } from "date-fns/locale";
+import { getPosts } from "@/lib/post";
 
 interface Post {
   title: string;

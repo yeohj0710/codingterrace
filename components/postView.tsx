@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getPost, getIsOwner, deletePost, Redirect } from "@/app/actions";
 import { categoryToName } from "@/lib/utils";
+import { customSchema } from "@/lib/customSchema";
+import { getIsOwner } from "@/lib/auth";
+import { deletePost, getPost } from "@/lib/post";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
 import rehypeSanitize from "rehype-sanitize";
-import { customSchema } from "@/lib/customSchema";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/atom-one-dark.css";
 
 interface PostViewProps {
   idx: string;
@@ -24,13 +26,13 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
       const postIdx = Number(idx);
       if (isNaN(postIdx)) {
         window.alert("존재하지 않는 게시물입니다.");
-        Redirect(basePath);
+        window.location.href = basePath;
         return;
       }
       const fetchedPost = await getPost(postIdx, category);
       if (!fetchedPost) {
         window.alert("존재하지 않는 게시물입니다.");
-        Redirect(basePath);
+        window.location.href = basePath;
         return;
       }
       setPost(fetchedPost);
@@ -39,6 +41,9 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
     };
     fetchData();
   }, [idx, category, basePath]);
+  const handleEdit = async () => {
+    window.location.href = `${basePath}/${post.idx}/edit`;
+  };
   const handleDelete = async () => {
     if (post.password !== null && post.password !== "") {
       const password = window.prompt("게시글 비밀번호를 입력해 주세요.");
@@ -46,7 +51,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
         setIsDeleting(true);
         await deletePost(post.idx);
         window.alert("게시글이 삭제되었습니다.");
-        Redirect(basePath);
+        window.location.href = basePath;
       } else {
         window.alert("비밀번호가 올바르지 않습니다.");
       }
@@ -56,7 +61,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
         setIsDeleting(true);
         await deletePost(post.idx);
         window.alert("게시글이 삭제되었습니다.");
-        Redirect(basePath);
+        window.location.href = basePath;
       }
     }
   };
@@ -98,29 +103,38 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
           <hr className="border-gray-300 my-4" />
           <div className="prose max-w-none">
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkBreaks]}
-              rehypePlugins={[[rehypeSanitize, customSchema]]}
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[[rehypeSanitize, customSchema], rehypeHighlight]}
               components={{
                 img: ({ node, ...props }) => (
                   <img {...props} className="w-full" alt={props.alt} />
                 ),
               }}
-              className="break-all whitespace-pre-wrap"
+              className="break-all"
             >
-              {post.content.replace(/\n{2,}/g, (match: any) => {
-                return Array(match.length).fill("<br>").join("");
-              })}
+              {post.content}
             </ReactMarkdown>
           </div>
           {(isOwner || (post.password !== null && post.password !== "")) && (
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end mt-4 gap-2">
+              <button
+                onClick={handleEdit}
+                disabled={isDeleting}
+                className={`px-4 py-1.5 rounded-md ${
+                  isDeleting
+                    ? "bg-gray-400 text-gray-700 cursor-not-allowed opacity-50"
+                    : "bg-green-400 text-white hover:bg-green-500"
+                }`}
+              >
+                수정
+              </button>
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
                 className={`px-4 py-1.5 rounded-md ${
                   isDeleting
                     ? "bg-gray-400 text-gray-700 cursor-not-allowed opacity-50"
-                    : "bg-green-400 text-white hover:bg-green-500"
+                    : "bg-red-400 text-white hover:bg-red-500"
                 }`}
               >
                 {isDeleting ? "삭제 중" : "삭제"}

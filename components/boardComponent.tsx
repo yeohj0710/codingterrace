@@ -3,7 +3,7 @@
 import Link from "next/link";
 import PostList from "@/components/postList";
 import { useState, useEffect } from "react";
-import { isUserOperator } from "@/app/actions";
+import { isUserOperator } from "@/lib/auth";
 
 interface BoardProps {
   category: string;
