@@ -7,6 +7,7 @@ import removeMarkdown from "remove-markdown";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ko } from "date-fns/locale";
 import { getPosts } from "@/lib/post";
+import { ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
 
 interface Post {
   title: string;
@@ -16,6 +17,9 @@ interface Post {
   ip: string | null;
   content: string;
   created_at: Date;
+  _count: {
+    comment: number;
+  };
   user: {
     idx: number;
     id: string;
@@ -125,6 +129,11 @@ export default function PostList({
                         timeZone: "Asia/Seoul",
                       })}
                     </span>
+                    <span className="mx-2 border-l border-gray-400" />
+                    <div className="flex items-center [color:rgb(35,181,180)]">
+                      <ChatBubbleLeftIcon className="w-4 h-4" />
+                      <span className="ml-1">{post._count.comment}</span>
+                    </div>
                   </div>
                 </div>
                 {imageUrl && (

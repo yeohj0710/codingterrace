@@ -25,6 +25,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const fetchUser = async () => {
@@ -32,8 +33,10 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
       setUser(userData);
     };
     const fetchComments = async () => {
+      setIsLoading(true);
       const commentsData = await getComments(postIdx);
       setComments(commentsData);
+      setIsLoading(false);
     };
     fetchUser();
     fetchComments();
@@ -144,6 +147,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
                       className="mr-4 mb-2"
                       style={{
                         maxHeight: "200px",
+                        maxWidth: "100%",
                         height: "auto",
                         display: "block",
                       }}
@@ -175,7 +179,27 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
   return (
     <div className="mt-8">
       <h2 className="text-lg font-bold mb-4">댓글</h2>
-      {comments.length > 0 ? (
+      {isLoading ? (
+        <div className="animate-pulse space-y-4">
+          {[...Array(1)].map((_, index) => (
+            <div
+              key={index}
+              className="border-b border-gray-300 py-2 mb-2 flex"
+            >
+              <div className="w-10 h-10 bg-gray-200 rounded-full mr-4"></div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-6 bg-gray-200 rounded w-1/6"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-28 bg-gray-200 rounded w-full"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : comments.length > 0 ? (
         <div>{renderComments(comments)}</div>
       ) : (
         <p className="flex flex-col items-center mt-5 mb-10 text-gray-400">

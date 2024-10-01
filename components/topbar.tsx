@@ -4,17 +4,19 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MenuLinks, UserLink } from "./menuLinks";
 import { getUser } from "@/lib/auth";
+import { usePathname } from "next/navigation";
 
 export default function TopBar() {
   const [user, setUser] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const pathname = usePathname();
   useEffect(() => {
     async function fetchUser() {
       const userData: any = await getUser();
       setUser(userData);
     }
     fetchUser();
-  }, []);
+  }, [pathname]);
   const closeDrawer = () => {
     setIsDrawerOpen(false);
   };

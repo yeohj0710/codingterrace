@@ -24,6 +24,9 @@ export async function getPosts(
       title: true,
       content: true,
       created_at: true,
+      _count: {
+        select: { comment: true },
+      },
     },
     orderBy: {
       created_at: "desc",
