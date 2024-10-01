@@ -46,8 +46,6 @@ export default function TopBar() {
           </button>
         </div>
       </header>
-
-      {/* 햄버거 메뉴 */}
       <div
         className={`fixed top-0 right-0 h-full bg-white shadow-lg z-40 transform transition-transform duration-300 ${
           isDrawerOpen ? "translate-x-0" : "translate-x-full"
@@ -62,8 +60,6 @@ export default function TopBar() {
           <UserLink user={user} />
         </div>
       </div>
-
-      {/* 배경 어두운 레이어 */}
       {isDrawerOpen && (
         <div
           className="fixed inset-0 bg-black opacity-50 z-30"

@@ -69,7 +69,13 @@ export default function PostList({
     <div className="w-full bg-white">
       {loading ? (
         <div className="animate-pulse space-y-4">
-          {[...Array(postsPerPage)].map((_, index) => (
+          {[
+            ...Array(
+              currentPage === totalPages
+                ? posts.length % postsPerPage
+                : postsPerPage
+            ),
+          ].map((_, index) => (
             <div key={index} className="h-28 bg-gray-200 rounded-md mb-2"></div>
           ))}
         </div>

@@ -15,7 +15,9 @@ model User {
   nickname   String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  Post       Post[]
+
+  post    Post[]
+  comment Comment[]
 }
 
 model Post {
@@ -31,6 +33,26 @@ model Post {
   updated_at DateTime @updatedAt
 
   userIdx Int?
+  comment Comment[]
+}
+
+model Comment {
+  idx        Int      @id @default(autoincrement())
+  content    String
+  images     String[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  nickname   String?
+  ip         String?
+  password   String?
+
+  user      User?     @relation(fields: [userIdx], references: [idx])
+  userIdx   Int?
+  post      Post      @relation(fields: [postIdx], references: [idx])
+  postIdx   Int
+  parent    Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
+  parentIdx Int?
+  replies   Comment[] @relation("CommentToComment")
 }
 
 model Subscription {

@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Input from "@/components/input";
 import { getUser } from "@/lib/auth";
 import { getPost, uploadPost, updatePost } from "@/lib/post";
-import { getUploadUrl } from "@/lib/upload";
 import { handlePaste } from "@/lib/handlePaste";
 import { useRouter } from "next/navigation";
+import { handleImageChange } from "@/lib/handleImageChange";
 
 interface PostFormProps {
   mode: "add" | "edit";
-  idx?: string; // edit 모드일 경우 게시글 idx
+  idx?: string;
   category: string;
   basePath: string;
 }
@@ -75,13 +75,13 @@ export default function PostForm({
     fetchUser();
     fetchData();
   }, [mode, idx, category, basePath, router, user]);
+  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(event.target.value);
+  };
   const handleContentChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
     setContent(event.target.value);
-  };
-  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(event.target.value);
   };
   const handleNicknameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setNickname(event.target.value);
@@ -89,56 +89,14 @@ export default function PostForm({
   const handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(event.target.value);
   };
-  const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { files } = event.target;
-    if (!files || files.length === 0) return;
-    const fileArray = Array.from(files);
-    setIsUploadingImages(true);
-    let currentSelectionStart = contentRef.current?.selectionStart || 0;
-    let currentSelectionEnd = contentRef.current?.selectionEnd || 0;
-    for (const file of fileArray) {
-      const { success, result, error } = await getUploadUrl();
-      if (!success) {
-        console.error("Failed to get upload URL:", error);
-        alert("이미지 업로드 URL을 가져오는데 실패했습니다.");
-        setIsUploadingImages(false);
-        return;
-      }
-      const { uploadURL } = result;
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadResponse = await fetch(uploadURL, {
-        method: "POST",
-        body: formData,
-      });
-      if (!uploadResponse.ok) {
-        setIsUploadingImages(false);
-        return;
-      }
-      const responseData = await uploadResponse.json();
-      const variants = responseData.result.variants;
-      const fileUrl = variants.find((url: string) => url.endsWith("/public"));
-      if (!fileUrl) {
-        setIsUploadingImages(false);
-        return;
-      }
-      const markdownImageTag = `![이미지 설명](${fileUrl})\n`;
-      const beforeSelection = content.substring(0, currentSelectionStart);
-      const afterSelection = content.substring(currentSelectionEnd);
-      const newContent = beforeSelection + markdownImageTag + afterSelection;
-      setContent(newContent);
-      setTimeout(() => {
-        if (contentRef.current) {
-          const newCursorPosition =
-            currentSelectionStart + markdownImageTag.length;
-          contentRef.current.selectionStart = newCursorPosition;
-          contentRef.current.selectionEnd = newCursorPosition;
-          contentRef.current.focus();
-        }
-      }, 0);
-    }
-    setIsUploadingImages(false);
-    event.target.value = "";
+  const onImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleImageChange(
+      event,
+      setIsUploadingImages,
+      content,
+      setContent,
+      contentRef
+    );
   };
   const handlePasteEvent = async (
     event: React.ClipboardEvent<HTMLTextAreaElement>

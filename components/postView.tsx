@@ -9,7 +9,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
+import remarkBreaks from "remark-breaks";
 import "highlight.js/styles/atom-one-dark.css";
+import CommentSection from "./commentSection";
 
 interface PostViewProps {
   idx: string;
@@ -103,7 +105,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
           <hr className="border-gray-300 my-4" />
           <div className="prose max-w-none">
             <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
+              remarkPlugins={[remarkGfm, remarkBreaks]}
               rehypePlugins={[[rehypeSanitize, customSchema], rehypeHighlight]}
               components={{
                 img: ({ node, ...props }) => (
@@ -142,6 +144,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
             </div>
           )}
         </div>
+        <CommentSection postIdx={post.idx} />
       </div>
     </div>
   );
