@@ -106,7 +106,10 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
   };
   const renderComments = (comments: any[]) => {
     return comments.map((comment) => (
-      <div key={comment.idx} className="border-b border-gray-300 py-2 mb-2">
+      <div
+        key={comment.idx}
+        className="border-b border-gray-300 py-2 mb-2 last:border-b-0"
+      >
         <div className="flex items-start">
           <div className="w-10 h-10 bg-gray-200 rounded-full mr-4"></div>
           <div className="flex-1">

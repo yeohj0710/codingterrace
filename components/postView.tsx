@@ -23,6 +23,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
   const [post, setPost] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   useEffect(() => {
     const fetchData = async () => {
       const postIdx = Number(idx);
@@ -43,6 +44,12 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
     };
     fetchData();
   }, [idx, category, basePath]);
+  if (!post) {
+    return null;
+  }
+  const handleImageClick = (src: string) => {
+    setSelectedImage(src);
+  };
   const handleEdit = async () => {
     window.location.href = `${basePath}/${post.idx}/edit`;
   };
@@ -67,9 +74,6 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
       }
     }
   };
-  if (!post) {
-    return null;
-  }
   return (
     <div className="flex flex-col items-center px-5 pt-0 pb-20">
       <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 pt-8">
@@ -109,13 +113,36 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
               rehypePlugins={[[rehypeSanitize, customSchema], rehypeHighlight]}
               components={{
                 img: ({ node, ...props }) => (
-                  <img {...props} className="w-full" alt={props.alt} />
+                  <img
+                    {...props}
+                    className="w-full cursor-pointer"
+                    alt={props.alt}
+                    onClick={() => handleImageClick(props.src!)}
+                  />
                 ),
               }}
               className="break-all"
             >
               {post.content}
             </ReactMarkdown>
+            {selectedImage && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+                onClick={() => setSelectedImage(null)}
+              >
+                <button
+                  className="absolute top-5 right-5 text-white text-3xl z-50"
+                  onClick={() => setSelectedImage(null)}
+                >
+                  &times;
+                </button>
+                <img
+                  src={selectedImage}
+                  alt="Modal Image"
+                  className="max-h-full max-w-full"
+                />
+              </div>
+            )}
           </div>
           {(isOwner || (post.password !== null && post.password !== "")) && (
             <div className="flex justify-end mt-4 gap-2">
