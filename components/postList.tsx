@@ -129,7 +129,7 @@ export default function PostList({
                         timeZone: "Asia/Seoul",
                       })}
                     </span>
-                    <span className="mx-2 border-l border-gray-400" />
+                    <span className="mx-1 border-l border-gray-400" />
                     <div className="flex items-center [color:rgb(35,181,180)]">
                       <ChatBubbleLeftIcon className="w-4 h-4" />
                       <span className="ml-1">{post._count.comment}</span>

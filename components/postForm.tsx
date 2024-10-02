@@ -177,14 +177,14 @@ export default function PostForm({
             </div>
             <div className="w-full sm:w-1/2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                비밀번호{" "}
+                비밀번호
                 <label className="text-xs">
                   (비회원 게시글 {mode === "add" ? "삭제" : "수정"} 시 필요)
                 </label>
               </label>
               {user ? (
                 <div className="px-2 py-1.5 border rounded-lg text-gray-500 bg-gray-200">
-                  　
+                  &nbsp;
                 </div>
               ) : (
                 <input
