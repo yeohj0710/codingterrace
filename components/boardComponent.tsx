@@ -29,7 +29,7 @@ export default function BoardComponent({
   const canWrite = category !== "technote" || isOperator;
   return (
     <div className="w-full sm:w-[640px] xl:w-1/2 px-5 py-7 bg-white sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
-      <div className="flex flex-row gap-[2%] justify-between">
+      <div className="flex flex-row gap-[2%] justify-between mb-6">
         <Link href={basePath} className="font-bold text-xl">
           {title}
         </Link>
@@ -43,7 +43,7 @@ export default function BoardComponent({
         )}
       </div>
       {category === "board" && (
-        <span className="text-xs text-gray-400 block my-3 ml-1">
+        <span className="text-xs text-gray-400 block -mt-3 mb-3 ml-1">
           * 부적절한 게시글은 임의로 삭제될 수 있습니다.
         </span>
       )}

@@ -22,7 +22,7 @@ model User {
 
 model Post {
   idx        Int      @id @default(autoincrement())
-  user       User?    @relation(fields: [userIdx], references: [idx])
+  user       User?    @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
   category   String
   title      String
   nickname   String?
@@ -46,9 +46,9 @@ model Comment {
   ip         String?
   password   String?
 
-  user      User?     @relation(fields: [userIdx], references: [idx])
+  user      User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
   userIdx   Int?
-  post      Post      @relation(fields: [postIdx], references: [idx])
+  post      Post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
   postIdx   Int
   parent    Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
   parentIdx Int?
