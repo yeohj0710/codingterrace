@@ -107,19 +107,23 @@ export default function PostList({
                   <p className="text-sm text-gray-600 mt-2 line-clamp-1 break-all">
                     {plainTextContent}
                   </p>
-                  <div className="flex flex-row gap-1 mt-auto text-xs text-gray-500">
-                    <span>{post.user?.nickname ?? post.nickname}</span>
+                  <div className="flex flex-row items-center gap-1 mt-auto text-xs text-gray-500 flex-nowrap">
+                    <span className="truncate max-w-[50%]">
+                      {post.user?.nickname ?? post.nickname}
+                    </span>
                     {!post.user && post.ip ? (
-                      <span className="text-gray-400">({post.ip})</span>
+                      <span className="text-gray-400 flex-shrink-0">
+                        ({post.ip})
+                      </span>
                     ) : null}
-                    <span className="mx-1 border-l border-gray-400"></span>
-                    <span className="sm:hidden">
+                    <span className="mx-1 border-l border-gray-400 flex-shrink-0 h-4"></span>
+                    <span className="sm:hidden flex-shrink-0">
                       {formatDistanceToNowStrict(new Date(post.created_at), {
                         addSuffix: true,
                         locale: ko,
                       })}
                     </span>
-                    <span className="hidden sm:inline">
+                    <span className="hidden sm:inline flex-shrink-0">
                       {new Date(post.created_at).toLocaleString("ko-KR", {
                         year: "numeric",
                         month: "2-digit",
@@ -129,8 +133,8 @@ export default function PostList({
                         timeZone: "Asia/Seoul",
                       })}
                     </span>
-                    <span className="mx-1 border-l border-gray-400" />
-                    <div className="flex items-center [color:rgb(35,181,180)]">
+                    <span className="mx-1 border-l border-gray-400 flex-shrink-0 h-4" />
+                    <div className="flex items-center [color:rgb(35,181,180)] flex-shrink-0">
                       <ChatBubbleLeftIcon className="w-4 h-4" />
                       <span className="ml-1">{post._count.comment}</span>
                     </div>

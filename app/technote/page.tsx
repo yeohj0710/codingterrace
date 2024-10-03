@@ -7,7 +7,7 @@ export default function TechnotePage() {
         category="technote"
         title="기술노트"
         basePath="/technote"
-        postsPerPage={10}
+        postsPerPage={3}
       />
     </div>
   );

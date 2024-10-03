@@ -122,7 +122,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
                   <div className="h-6 bg-gray-200 rounded w-1/6"></div>
                 </div>
                 <div className="space-y-2">
-                  <div className="h-24 bg-gray-200 rounded w-full"></div>
+                  <div className="h-12 bg-gray-200 rounded w-full"></div>
                 </div>
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           />
         ))
       ) : (
-        <p className="text-gray-400">
+        <p className="text-gray-400 text-center mt-10 mb-16">
           댓글이 없습니다. 첫 번째 댓글을 남겨보세요!
         </p>
       )}
