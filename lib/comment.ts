@@ -70,4 +70,40 @@ export async function deleteComment(commentIdx: number, password?: string) {
   await db.comment.delete({ where: { idx: commentIdx } });
 }
 
-// updateComment 구현 필요
+export async function updateComment(formData: FormData) {
+  const data = {
+    idx: formData.get("idx"),
+    content: formData.get("content"),
+    nickname: formData.get("nickname"),
+    password: formData.get("password"),
+  };
+  const idx = Number(data.idx);
+  if (isNaN(idx)) {
+    throw new Error("잘못된 댓글 번호입니다.");
+  }
+  const session = await getSession();
+  const comment = await db.comment.findUnique({
+    where: { idx },
+    include: { user: true },
+  });
+  if (!comment) {
+    throw new Error("댓글을 찾을 수 없습니다.");
+  }
+  if (comment.user) {
+    if (!session?.idx || session.idx !== comment.user.idx) {
+      throw new Error("수정 권한이 없습니다.");
+    }
+  }
+  const updateData: any = {
+    content: data.content,
+    updated_at: new Date(),
+  };
+  if (!comment.user) {
+    updateData.nickname = data.nickname || "익명";
+    updateData.password = data.password;
+  }
+  await db.comment.update({
+    where: { idx },
+    data: updateData,
+  });
+}

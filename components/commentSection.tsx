@@ -6,6 +6,7 @@ import { getComments, addComment, deleteComment } from "@/lib/comment";
 import { handleImageChange } from "@/lib/handleImageChange";
 import { handlePaste } from "@/lib/handlePaste";
 import Comment from "./comment";
+import { comment } from "postcss";
 
 interface CommentSectionProps {
   postIdx: number;
@@ -35,6 +36,10 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
     fetchUser();
     fetchComments();
   }, [postIdx]);
+  const refreshComments = async () => {
+    const commentsData = await getComments(postIdx);
+    setComments(commentsData);
+  };
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
   };
@@ -102,7 +107,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
   };
   return (
     <div className="mt-8">
-      <h2 className="text-lg font-bold mb-4">댓글</h2>
+      <h2 className="text-lg font-bold mb-4">댓글 {comments.length}개</h2>
       {isLoading ? (
         <div className="animate-pulse space-y-4">
           {[...Array(1)].map((_, index) => (
@@ -117,7 +122,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
                   <div className="h-6 bg-gray-200 rounded w-1/6"></div>
                 </div>
                 <div className="space-y-2">
-                  <div className="h-28 bg-gray-200 rounded w-full"></div>
+                  <div className="h-24 bg-gray-200 rounded w-full"></div>
                 </div>
               </div>
             </div>
@@ -129,6 +134,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
             key={comment.idx}
             comment={comment}
             handleDelete={handleDelete}
+            refreshComments={refreshComments}
           />
         ))
       ) : (
@@ -136,7 +142,6 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           댓글이 없습니다. 첫 번째 댓글을 남겨보세요!
         </p>
       )}
-
       <form onSubmit={handleSubmit} className="mt-3 mb-6">
         {!user && (
           <div className="flex gap-4 mb-2">
