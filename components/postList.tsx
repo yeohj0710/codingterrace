@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import PostPagination from "@/components/postPagination";
 import removeMarkdown from "remove-markdown";
@@ -34,31 +34,48 @@ interface PostListProps {
   category: string;
   basePath: string;
   postsPerPage: number;
+  refreshKey: number;
+  setIsRefreshing: (isRefreshing: boolean) => void;
 }
+
+const cache: { [key: string]: { posts: Post[]; totalPages: number } } = {};
 
 export default function PostList({
   category,
   basePath,
   postsPerPage,
+  refreshKey,
+  setIsRefreshing,
 }: PostListProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    const fetchPosts = async () => {
+    const cacheKey = `${category}_${currentPage}`;
+    const fetchData = async () => {
       setLoading(true);
+      setIsRefreshing(true);
       const { posts, totalPosts } = await getPosts(
         category,
         currentPage,
         postsPerPage
       );
+      const calculatedTotalPages = Math.ceil(totalPosts / postsPerPage);
+      cache[cacheKey] = { posts, totalPages: calculatedTotalPages };
       setPosts(posts);
-      setTotalPages(Math.ceil(totalPosts / postsPerPage));
+      setTotalPages(calculatedTotalPages);
       setLoading(false);
+      setIsRefreshing(false);
     };
-    fetchPosts();
-  }, [category, currentPage]);
+    if (cache[cacheKey] && refreshKey === 0) {
+      setPosts(cache[cacheKey].posts);
+      setTotalPages(cache[cacheKey].totalPages);
+      setLoading(false);
+    } else {
+      fetchData();
+    }
+  }, [category, currentPage, refreshKey]);
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   function extractFirstImageUrl(content: string): string | null {
     const imageRegex = /!\[.*?\]\((.*?)\)/;

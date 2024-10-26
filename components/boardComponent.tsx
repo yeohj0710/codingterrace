@@ -4,6 +4,7 @@ import Link from "next/link";
 import PostList from "@/components/postList";
 import { useState, useEffect } from "react";
 import { isUserOperator } from "@/lib/auth";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
 interface BoardProps {
   category: string;
@@ -19,6 +20,9 @@ export default function BoardComponent({
   postsPerPage,
 }: BoardProps) {
   const [isOperator, setIsOperator] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const canWrite = category !== "technote" || isOperator;
   useEffect(() => {
     const checkUserOperator = async () => {
       const isOp = await isUserOperator();
@@ -26,13 +30,22 @@ export default function BoardComponent({
     };
     checkUserOperator();
   }, []);
-  const canWrite = category !== "technote" || isOperator;
   return (
     <div className="w-full sm:w-[640px] xl:w-1/2 px-5 py-7 bg-white sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
-      <div className="flex flex-row gap-[2%] justify-between mb-6">
-        <Link href={basePath} className="font-bold text-xl">
-          {title}
-        </Link>
+      <div className="flex flex-row gap-[2%] justify-between mb-6 items-center">
+        <div className="flex items-center">
+          <Link href={basePath} className="font-bold text-xl">
+            {title}
+          </Link>
+          <button
+            onClick={() => {
+              setRefreshKey((prev) => prev + 1);
+            }}
+            className={`ml-2 ${isRefreshing ? "animate-spin" : ""}`}
+          >
+            <ArrowPathIcon className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
         {canWrite && (
           <Link
             href={`${basePath}/new`}
@@ -51,6 +64,8 @@ export default function BoardComponent({
         category={category}
         basePath={basePath}
         postsPerPage={postsPerPage}
+        refreshKey={refreshKey}
+        setIsRefreshing={setIsRefreshing}
       />
     </div>
   );

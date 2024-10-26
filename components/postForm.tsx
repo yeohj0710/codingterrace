@@ -32,11 +32,9 @@ export default function PostForm({
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchAllData = async () => {
       const userData = await getUser();
       setUser(userData);
-    };
-    const fetchData = async () => {
       if (mode === "edit" && idx) {
         const postData = await getPost(Number(idx), category);
         if (!postData) {
@@ -49,7 +47,7 @@ export default function PostForm({
         setContent(postData.content);
         setNickname(postData.nickname ?? "");
         if (postData.user) {
-          if (!user || user.idx !== postData.user.idx) {
+          if (!userData || userData.idx !== postData.user.idx) {
             alert("게시글을 수정할 권한이 없습니다.");
             router.push(basePath);
             return;
@@ -72,9 +70,8 @@ export default function PostForm({
         }
       }
     };
-    fetchUser();
-    fetchData();
-  }, [mode, idx, category, basePath, router, user]);
+    fetchAllData();
+  }, [mode, idx, category, basePath, router]);
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(event.target.value);
   };
@@ -121,7 +118,7 @@ export default function PostForm({
       await uploadPost(category, basePath, formData);
     } else if (mode === "edit" && idx) {
       formData.append("idx", idx);
-      await updatePost(formData);
+      await updatePost(category, formData);
     }
     setIsSubmitting(false);
   };

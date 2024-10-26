@@ -124,7 +124,7 @@ export async function uploadPost(
   redirect(`${basePath}/${post.idx}`);
 }
 
-export async function updatePost(formData: FormData) {
+export async function updatePost(category: string, formData: FormData) {
   const data = {
     idx: formData.get("idx"),
     title: formData.get("title"),
@@ -160,7 +160,7 @@ export async function updatePost(formData: FormData) {
     where: { idx },
     data: updateData,
   });
-  redirect(`/board/${idx}`);
+  redirect(`/${category}/${idx}`);
 }
 
 export async function deletePost(idx: number) {
