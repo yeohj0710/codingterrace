@@ -8,19 +8,40 @@ webpush.setVapidDetails(
   process.env.PRIVATE_VAPID_KEY as string
 );
 
-async function handleExpiredSubscription(endpoint: string, type: string) {
+async function handleExpiredSubscription(
+  endpoint: string,
+  type: string,
+  postId?: number
+) {
   console.log("subscription이 만료되어 삭제합니다:", endpoint);
   try {
-    await db.subscription.delete({
-      where: {
-        endpoint_type: {
-          endpoint,
-          type,
+    if (postId === undefined) {
+      console.error("postId가 undefined입니다. 삭제 작업을 건너뜁니다.");
+      return;
+    }
+    if (postId === null) {
+      await db.subscription.deleteMany({
+        where: {
+          endpoint: endpoint,
+          type: type,
+          postId: null,
         },
-      },
-    });
+      });
+    } else {
+      await db.subscription.delete({
+        where: {
+          endpoint_type_postId: {
+            endpoint: endpoint,
+            type: type,
+            postId: postId,
+          },
+        },
+      });
+    }
+
+    console.log("subscription 삭제 완료:", endpoint);
   } catch (error) {
-    console.error("만료된 subscription 삭제 중 에러 발생:", error);
+    console.error("subscription 삭제 중 에러 발생:", error);
   }
 }
 
