@@ -100,7 +100,7 @@ export default function PostList({
                       avatarUrl={post.user?.avatar ?? null}
                     />
                     {!post.user && post.ip ? (
-                      <span className="text-gray-400 flex-shrink-0">
+                      <span className="text-gray-400 flex-shrink-0 -ml-1.5">
                         ({post.ip})
                       </span>
                     ) : null}

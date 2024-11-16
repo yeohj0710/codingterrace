@@ -4,6 +4,8 @@ export function categoryToName(category: string): string {
       return "자유게시판";
     case "technote":
       return "기술노트";
+    case "main":
+      return "메가폰";
     default:
       return "자유게시판";
   }

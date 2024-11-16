@@ -1,3 +1,5 @@
+import { categoryToName } from "./utils";
+
 export const requestNotificationPermission = async (showAlert: () => void) => {
   const permission = Notification.permission;
   if (permission === "default") {
@@ -27,17 +29,41 @@ export const toggleSubscription = async (
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     if (subscription) {
-      await subscription.unsubscribe();
-      await fetch("/api/unsubscribe", {
+      const response = await fetch("/api/check-subscription", {
         method: "POST",
         body: JSON.stringify({
           endpoint: subscription.endpoint,
           type: type,
+          postId: null,
         }),
         headers: {
           "Content-Type": "application/json",
         },
       });
+      const result = await response.json();
+      if (result.exists) {
+        const unsubscribeResponse = await fetch("/api/unsubscribe", {
+          method: "POST",
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            type: type,
+            postId: null,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const unsubscribeResult = await unsubscribeResponse.json();
+        if (
+          unsubscribeResponse.ok &&
+          !unsubscribeResult.hasOtherSubscriptions
+        ) {
+          await subscription.unsubscribe();
+        }
+      } else {
+        await saveSubscriptionToServer(subscription, type);
+        console.log(`subscription 생성 완료: ${categoryToName(type)}`);
+      }
     } else {
       const convertedVapidKey = urlBase64ToUint8Array(
         process.env.NEXT_PUBLIC_VAPID_KEY as string
@@ -47,6 +73,7 @@ export const toggleSubscription = async (
         applicationServerKey: convertedVapidKey,
       });
       await saveSubscriptionToServer(newSubscription, type);
+      console.log(`subscription 생성 완료: ${categoryToName(type)}`);
     }
   } catch (error) {
     console.error("알림 on/off 전환 중 에러가 발생했습니다:", error);
@@ -58,7 +85,8 @@ export const toggleSubscription = async (
 
 const saveSubscriptionToServer = async (
   subscription: PushSubscription,
-  type: string
+  type: string,
+  postId?: number
 ) => {
   try {
     const p256dh = subscription.getKey("p256dh");
@@ -78,6 +106,7 @@ const saveSubscriptionToServer = async (
           auth: authBase64,
         },
         type: type,
+        postId: postId || null,
       }),
       headers: {
         "Content-Type": "application/json",

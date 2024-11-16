@@ -139,7 +139,7 @@ export default function Comment({
           </div>
           <div className="prose max-w-none">
             {isEditing ? (
-              <div>
+              <div className="mt-6">
                 {!comment.user && (
                   <div className="flex gap-4 mb-2">
                     <input
@@ -196,7 +196,7 @@ export default function Comment({
                       className="hidden"
                     />
                   </div>
-                  <div>
+                  <div className="text-sm">
                     <button
                       onClick={handleSaveEdit}
                       className="text-green-500 hover:underline mr-2"
@@ -241,19 +241,20 @@ export default function Comment({
             )}
           </div>
           <div className="flex justify-end mt-2">
-            {(isOwner || comment.password) && (
-              <div className="text-gray-500 text-sm">
-                <button onClick={handleEdit} className="hover:underline mr-2">
-                  수정
-                </button>
-                <button
-                  onClick={() => handleDelete(comment.idx, comment.password)}
-                  className="hover:underline"
-                >
-                  삭제
-                </button>
-              </div>
-            )}
+            {(isOwner || comment.password) &&
+              (!isEditing ? (
+                <div className="text-gray-500 text-sm">
+                  <button onClick={handleEdit} className="hover:underline mr-2">
+                    수정
+                  </button>
+                  <button
+                    onClick={() => handleDelete(comment.idx, comment.password)}
+                    className="hover:underline"
+                  >
+                    삭제
+                  </button>
+                </div>
+              ) : null)}
           </div>
           {comment.replies && comment.replies.length > 0 && (
             <div className="ml-4 mt-2">

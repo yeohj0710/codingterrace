@@ -21,22 +21,33 @@ export async function POST(request: Request) {
       );
     }
     const { endpoint, keys, type, postId } = subscription;
-    await db.subscription.upsert({
-      where: { endpoint_type: { endpoint, type } },
-      update: {
-        p256dh: keys.p256dh,
-        auth: keys.auth,
+    const existingSubscription = await db.subscription.findFirst({
+      where: {
+        endpoint: endpoint,
+        type: type,
         postId: postId || null,
-      },
-      create: {
-        endpoint,
-        p256dh: keys.p256dh,
-        auth: keys.auth,
-        type: type ?? "main",
-        postId: postId || null,
-        created_at: new Date(),
       },
     });
+    if (existingSubscription) {
+      await db.subscription.update({
+        where: { id: existingSubscription.id },
+        data: {
+          p256dh: keys.p256dh,
+          auth: keys.auth,
+        },
+      });
+    } else {
+      await db.subscription.create({
+        data: {
+          endpoint,
+          p256dh: keys.p256dh,
+          auth: keys.auth,
+          type: type ?? "main",
+          postId: postId || null,
+          created_at: new Date(),
+        },
+      });
+    }
     return NextResponse.json({ message: "subscription이 저장되었습니다." });
   } catch (error) {
     console.error("subscription 저장 과정에서 에러가 발생했습니다:", error);

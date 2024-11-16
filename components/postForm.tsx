@@ -116,10 +116,11 @@ export default function PostForm({
       return;
     }
     setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
-    if (mode === "add") {
-      const postId = await uploadPost(category, basePath, formData);
-      try {
+    let postId;
+    try {
+      const formData = new FormData(e.currentTarget);
+      if (mode === "add") {
+        postId = await uploadPost(category, basePath, formData);
         const notificationTitle = `${categoryToName(
           category
         )}에 새 글이 게시되었어요.`;
@@ -144,32 +145,36 @@ export default function PostForm({
             if (!subscription) {
               subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+                applicationServerKey: process.env.NEXT_PUBLIC_VAPID_KEY,
               });
             }
             const subscriptionData = {
               ...subscription.toJSON(),
               type: "postAuthor",
-              postId: postId,
+              postId,
             };
             await saveSubscription(subscriptionData);
+            console.log(
+              "게시글에 대한 subscription이 등록되었습니다:",
+              subscriptionData
+            );
           } else {
             console.warn("알림 권한이 필요합니다.");
           }
         }
-      } catch (error) {
-        console.error(`알림 발송 중 에러가 발생하였습니다: ${error}`);
+      } else if (mode === "edit" && idx) {
+        formData.append("idx", idx);
+        await updatePost(category, formData);
       }
-      if (postId) {
-        router.push(`${basePath}/${postId}`);
-        return;
-      }
-    } else if (mode === "edit" && idx) {
-      formData.append("idx", idx);
-      await updatePost(category, formData);
+      clearPostCache(category);
+    } catch (error) {
+      console.error("게시글 처리 중 에러가 발생했습니다:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-    clearPostCache(category);
+    if (postId) {
+      router.push(`${basePath}/${postId}`);
+    }
   };
   if (mode === "edit" && !post) {
     return null;

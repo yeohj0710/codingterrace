@@ -3,22 +3,42 @@ import db from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
-    const { endpoint, type } = await request.json();
+    const { endpoint, type, postId } = await request.json();
     if (!endpoint || !type) {
       return NextResponse.json(
         { error: "Invalid request data" },
         { status: 400 }
       );
     }
-    await db.subscription.delete({
-      where: {
-        endpoint_type: {
-          endpoint,
-          type,
+    if (postId === null) {
+      await db.subscription.deleteMany({
+        where: {
+          endpoint: endpoint,
+          type: type,
+          postId: null,
         },
+      });
+    } else {
+      await db.subscription.delete({
+        where: {
+          endpoint_type_postId: {
+            endpoint: endpoint,
+            type: type,
+            postId: postId,
+          },
+        },
+      });
+    }
+    const remainingSubscriptions = await db.subscription.findMany({
+      where: {
+        endpoint: endpoint,
       },
     });
-    return NextResponse.json({ message: "Subscription removed" });
+    const hasOtherSubscriptions = remainingSubscriptions.length > 0;
+    return NextResponse.json({
+      message: "Subscription removed",
+      hasOtherSubscriptions,
+    });
   } catch (error) {
     console.error("Error removing subscription:", error);
     return NextResponse.json(

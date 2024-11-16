@@ -10,6 +10,7 @@ import {
   requestNotificationPermission,
   toggleSubscription,
 } from "@/lib/notification";
+import CustomAlert from "@/components/customAlert";
 
 interface BoardProps {
   category: string;
@@ -29,6 +30,7 @@ export default function BoardComponent({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
   const canWrite = category !== "technote" || isOperator;
   useEffect(() => {
     const checkUserOperator = async () => {
@@ -36,39 +38,37 @@ export default function BoardComponent({
       setIsOperator(isOp);
     };
     const checkSubscriptionStatus = async () => {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
+      if (!("serviceWorker" in navigator)) {
+        console.error("ServiceWorker를 지원하지 않는 브라우저입니다.");
         setIsSubscribed(false);
         return;
       }
       try {
-        const p256dh = subscription.getKey("p256dh");
-        const auth = subscription.getKey("auth");
-        const p256dhBase64 = p256dh
-          ? btoa(String.fromCharCode(...new Uint8Array(p256dh)))
-          : null;
-        const authBase64 = auth
-          ? btoa(String.fromCharCode(...new Uint8Array(auth)))
-          : null;
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          setIsSubscribed(false);
+          return;
+        }
         const response = await fetch("/api/check-subscription", {
           method: "POST",
           body: JSON.stringify({
             endpoint: subscription.endpoint,
-            keys: {
-              p256dh: p256dhBase64,
-              auth: authBase64,
-            },
             type: category,
+            postId: null,
           }),
           headers: {
             "Content-Type": "application/json",
           },
         });
+        if (!response.ok) {
+          throw new Error("구독 상태 확인 중 서버 응답 오류");
+        }
         const result = await response.json();
         setIsSubscribed(result.exists);
       } catch (error) {
-        console.error("Error checking subscription status:", error);
+        console.error("구독 상태 확인 중 에러:", error);
+        setIsSubscribed(false);
       }
     };
     checkUserOperator();
@@ -81,15 +81,20 @@ export default function BoardComponent({
     }
     try {
       setIsProcessing(true);
-      const permissionGranted = await requestNotificationPermission(() => {
-        window.alert("알림 권한이 필요합니다.");
-      });
-      if (!permissionGranted) {
-        setIsProcessing(false);
-        return;
+      if (!isSubscribed) {
+        const permissionGranted = await requestNotificationPermission(() => {
+          setIsProcessing(false);
+          setIsSubscribed(false);
+          setIsAlertVisible(true);
+        });
+        if (!permissionGranted) {
+          setIsProcessing(false);
+          setIsAlertVisible(true);
+          return;
+        }
       }
       await toggleSubscription(category, () => {
-        window.alert("알림 권한이 필요합니다.");
+        setIsAlertVisible(true);
       });
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
@@ -99,13 +104,16 @@ export default function BoardComponent({
         setIsSubscribed(!isSubscribed);
       }
     } catch (error) {
-      window.alert(`알림 설정 중 에러가 발생했습니다: ${error}`);
+      console.error("알림 설정 중 에러:", error);
     } finally {
       setIsProcessing(false);
     }
   };
   return (
     <div className="w-full sm:w-[640px] xl:w-1/2 px-5 py-7 bg-white sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
+      {isAlertVisible && (
+        <CustomAlert onClose={() => setIsAlertVisible(false)} />
+      )}
       <div className="flex flex-row gap-[2%] justify-between mb-5 sm:mb-6 items-center">
         <div className="flex items-center">
           <Link href={basePath} className="font-bold text-xl">

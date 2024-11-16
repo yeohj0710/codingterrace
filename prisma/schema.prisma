@@ -65,5 +65,5 @@ model Subscription {
   postId     Int?
   created_at DateTime @default(now())
 
-  @@unique([endpoint, type])
+  @@unique([endpoint, type, postId])
 }

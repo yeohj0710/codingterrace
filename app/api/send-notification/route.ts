@@ -10,7 +10,7 @@ webpush.setVapidDetails(
 
 export async function POST(request: Request) {
   try {
-    const { title, message, url, type } = await request.json();
+    const { title, message, url, type, postId } = await request.json();
     if (!type) {
       return NextResponse.json(
         { error: "Request에서 category type이 누락되었습니다." },
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       );
     }
     const subscriptions = await db.subscription.findMany({
-      where: { type: type },
+      where: { type: type, postId: postId || null },
     });
     const payload = JSON.stringify({
       title,
@@ -44,9 +44,10 @@ export async function POST(request: Request) {
           );
           await db.subscription.delete({
             where: {
-              endpoint_type: {
+              endpoint_type_postId: {
                 endpoint: subscription.endpoint,
                 type: subscription.type,
+                postId: postId || null,
               },
             },
           });

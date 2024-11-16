@@ -8,12 +8,28 @@ webpush.setVapidDetails(
   process.env.PRIVATE_VAPID_KEY as string
 );
 
+async function handleExpiredSubscription(endpoint: string, type: string) {
+  console.log("subscription이 만료되어 삭제합니다:", endpoint);
+  try {
+    await db.subscription.delete({
+      where: {
+        endpoint_type: {
+          endpoint,
+          type,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("만료된 subscription 삭제 중 에러 발생:", error);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { postId, title, message, url } = await request.json();
-    if (!postId) {
+    if (!postId || !title || !message || !url) {
       return NextResponse.json(
-        { error: "postId가 누락되었습니다." },
+        { error: "postId, title, message, url 중 일부가 누락되었습니다." },
         { status: 400 }
       );
     }
@@ -45,20 +61,17 @@ export async function POST(request: Request) {
       await webpush.sendNotification(pushSubscription, payload);
       return NextResponse.json({ success: true });
     } catch (error: any) {
+      console.error("Send Notification Error:", error);
       if (error.statusCode === 410) {
-        console.log("구독이 만료되어 삭제합니다: ", subscription.endpoint);
-        await db.subscription.delete({
-          where: {
-            endpoint_type: {
-              endpoint: subscription.endpoint,
-              type: "postAuthor",
-            },
-          },
-        });
+        await handleExpiredSubscription(subscription.endpoint, "postAuthor");
+        return NextResponse.json(
+          { error: "Subscription expired and removed" },
+          { status: 410 }
+        );
       } else {
         console.error("알림 전송 실패: ", error);
+        return NextResponse.json({ error: "알림 전송 실패" }, { status: 500 });
       }
-      return NextResponse.json({ error: "알림 전송 실패" }, { status: 500 });
     }
   } catch (error) {
     console.error("notify-post-author에서 에러 발생:", error);

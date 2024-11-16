@@ -17,49 +17,54 @@ export default function NotificationPanel() {
   const [isSending, setIsSending] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   useEffect(() => {
-    const registerServiceWorker = async () => {
+    const initializeNotification = async () => {
       if (!("serviceWorker" in navigator)) {
-        window.alert("이 브라우저에서는 알림을 지원하지 않습니다.");
+        console.warn("Service Worker를 지원하지 않는 브라우저입니다.");
         return;
       }
       try {
         await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
         await requestNotificationPermission(() => setIsAlertVisible(true));
         await checkNotificationStatus();
       } catch (error) {
-        window.alert(`service worker 등록에 실패했습니다: ${error}`);
+        console.error("Service Worker 초기화 중 에러:", error);
       }
     };
-    registerServiceWorker();
+    initializeNotification();
   }, []);
   const checkNotificationStatus = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
-      setIsSubscribed(!!subscription);
+      const subscribed = !!subscription;
+      setIsSubscribed(subscribed);
     } catch (error) {
-      window.alert(`구독 상태 확인 중 에러가 발생했습니다: ${error}`);
+      console.error("구독 상태 확인 중 에러:", error);
     }
   };
   const handleNotificationToggle = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      window.alert("이 브라우저는 알림을 지원하지 않습니다.");
+      setIsAlertVisible(true);
       return;
     }
+    setIsProcessing(true);
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        setIsProcessing(true);
+      const permission = Notification.permission;
+      if (permission !== "granted") {
+        setIsAlertVisible(true);
+        setIsProcessing(false);
+        return;
       }
       await toggleSubscription("main", () => setIsAlertVisible(true));
       await checkNotificationStatus();
     } catch (error) {
-      window.alert(`알림 on/off 전환 중 에러가 발생했습니다: ${error}`);
+      console.error("알림 on/off 전환 중 에러:", error);
     } finally {
       setIsProcessing(false);
     }
   };
+
   const handleNotificationSend = async () => {
     setIsSending(true);
     try {
@@ -69,8 +74,9 @@ export default function NotificationPanel() {
       }
       const url = "https://codingterrace.com";
       await sendNotification(title, message, "main", url);
+      window.alert("알림이 성공적으로 발송되었습니다!");
     } catch (error) {
-      window.alert(`알림 발송 중 에러가 발생했습니다: ${error}`);
+      console.error("알림 발송 중 에러:", error);
     } finally {
       setIsSending(false);
     }
@@ -121,12 +127,19 @@ export default function NotificationPanel() {
         />
         <button
           onClick={handleNotificationSend}
-          className={`${
+          className={`flex items-center justify-center ${
             isSending ? "bg-gray-400" : "bg-green-400 hover:bg-green-500"
           } text-white p-2 rounded-lg`}
           disabled={isSending}
         >
-          {isSending ? "알림 발송 중" : "알림 보내기"}
+          {isSending ? (
+            <>
+              알림 발송 중
+              <div className="w-4 h-4 ml-2 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+            </>
+          ) : (
+            "알림 보내기"
+          )}
         </button>
       </div>
     </>
