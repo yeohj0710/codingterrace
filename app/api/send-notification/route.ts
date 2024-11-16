@@ -10,8 +10,16 @@ webpush.setVapidDetails(
 
 export async function POST(request: Request) {
   try {
-    const { title, message, url } = await request.json();
-    const subscriptions = await db.subscription.findMany();
+    const { title, message, url, type } = await request.json();
+    if (!type) {
+      return NextResponse.json(
+        { error: "Request에서 category type이 누락되었습니다." },
+        { status: 400 }
+      );
+    }
+    const subscriptions = await db.subscription.findMany({
+      where: { type: type },
+    });
     const payload = JSON.stringify({
       title,
       message,
@@ -47,13 +55,16 @@ export async function POST(request: Request) {
       }
     });
     await Promise.all(notificationPromises);
-    return new Response(JSON.stringify({ message: "Notification sent" }), {
-      status: 200,
-    });
+    return new Response(
+      JSON.stringify({ message: "알림 발송에 성공하였습니다." }),
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
     console.error("알림 발송 중 에러가 발생하였습니다:", error);
     return NextResponse.json(
-      { error: "알림 발송 중 에러 발생" },
+      { error: "알림 발송 중 에러가 발생하였습니다." },
       { status: 500 }
     );
   }

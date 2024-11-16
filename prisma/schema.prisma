@@ -62,4 +62,6 @@ model Subscription {
   auth       String
   type       String?
   created_at DateTime @default(now())
+
+  @@unique([endpoint, type], name: "subscription_endpoint_type_unique")
 }

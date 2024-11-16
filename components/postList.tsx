@@ -8,6 +8,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { ko } from "date-fns/locale";
 import { getPosts } from "@/lib/post";
 import { ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
+import { postCache } from "@/lib/cache";
 
 interface Post {
   title: string;
@@ -38,8 +39,6 @@ interface PostListProps {
   setIsRefreshing: (isRefreshing: boolean) => void;
 }
 
-const cache: { [key: string]: { posts: Post[]; totalPages: number } } = {};
-
 export default function PostList({
   category,
   basePath,
@@ -62,15 +61,15 @@ export default function PostList({
         postsPerPage
       );
       const calculatedTotalPages = Math.ceil(totalPosts / postsPerPage);
-      cache[cacheKey] = { posts, totalPages: calculatedTotalPages };
+      postCache[cacheKey] = { posts, totalPages: calculatedTotalPages };
       setPosts(posts);
       setTotalPages(calculatedTotalPages);
       setLoading(false);
       setIsRefreshing(false);
     };
-    if (cache[cacheKey] && refreshKey === 0) {
-      setPosts(cache[cacheKey].posts);
-      setTotalPages(cache[cacheKey].totalPages);
+    if (postCache[cacheKey] && refreshKey === 0) {
+      setPosts(postCache[cacheKey].posts);
+      setTotalPages(postCache[cacheKey].totalPages);
       setLoading(false);
     } else {
       fetchData();

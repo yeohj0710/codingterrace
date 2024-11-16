@@ -28,6 +28,16 @@ export const toggleSubscription = async (
     const subscription = await registration.pushManager.getSubscription();
     if (subscription) {
       await subscription.unsubscribe();
+      await fetch("/api/unsubscribe", {
+        method: "POST",
+        body: JSON.stringify({
+          endpoint: subscription.endpoint,
+          type: type,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     } else {
       const convertedVapidKey = urlBase64ToUint8Array(
         process.env.NEXT_PUBLIC_VAPID_KEY as string

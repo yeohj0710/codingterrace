@@ -7,6 +7,9 @@ import { getPost, uploadPost, updatePost } from "@/lib/post";
 import { handlePaste } from "@/lib/handlePaste";
 import { useRouter } from "next/navigation";
 import { handleImageChange } from "@/lib/handleImageChange";
+import { sendNotification } from "@/lib/notification";
+import { clearPostCache } from "@/lib/cache";
+import { categoryToName } from "@/lib/utils";
 
 interface PostFormProps {
   mode: "add" | "edit";
@@ -116,11 +119,27 @@ export default function PostForm({
     const formData = new FormData(e.currentTarget);
     if (mode === "add") {
       await uploadPost(category, basePath, formData);
+      try {
+        const notificationTitle = `${categoryToName(
+          category
+        )}에 새 글이 게시되었어요.`;
+        const notificationMessage = `${title}\n${content}`;
+        const postUrl = `${basePath}`;
+        await sendNotification(
+          notificationTitle,
+          notificationMessage,
+          category,
+          postUrl
+        );
+      } catch (error) {
+        console.error(`알림 발송 중 에러가 발생하였습니다: ${error}`);
+      }
     } else if (mode === "edit" && idx) {
       formData.append("idx", idx);
       await updatePost(category, formData);
     }
     setIsSubmitting(false);
+    clearPostCache(category);
   };
   if (mode === "edit" && !post) {
     return null;

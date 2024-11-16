@@ -11,7 +11,10 @@ export async function POST(request: Request) {
       );
     }
     const subscription = await db.subscription.findUnique({
-      where: { endpoint, type },
+      where: {
+        endpoint: endpoint,
+        type: type,
+      },
     });
     if (subscription) {
       return NextResponse.json({ exists: true });
