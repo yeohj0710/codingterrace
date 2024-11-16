@@ -6,7 +6,7 @@ import { getComments, addComment, deleteComment } from "@/lib/comment";
 import { handleImageChange } from "@/lib/handleImageChange";
 import { handlePaste } from "@/lib/handlePaste";
 import Comment from "./comment";
-import { comment } from "postcss";
+import { sendNotificationToPostAuthor } from "@/lib/notification";
 
 interface CommentSectionProps {
   postIdx: number;
@@ -84,6 +84,24 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
       formData.append("password", password);
     }
     await addComment(formData);
+    try {
+      const notificationTitle = "내 글에 댓글이 달렸어요.";
+      const maxLength = 50;
+      const truncatedContent =
+        content.length > maxLength
+          ? content.slice(0, maxLength) + "..."
+          : content;
+      const notificationMessage = truncatedContent;
+      const postUrl = `${window.location.origin}/post/${postIdx}`;
+      await sendNotificationToPostAuthor(
+        postIdx,
+        notificationTitle,
+        notificationMessage,
+        postUrl
+      );
+    } catch (error) {
+      console.error(`알림 발송 중 에러가 발생하였습니다: ${error}`);
+    }
     setContent("");
     setIsSubmitting(false);
     const commentsData = await getComments(postIdx);
@@ -160,6 +178,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
               value={password}
               onChange={handlePasswordChange}
               className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
+              autoComplete="off"
             />
           </div>
         )}

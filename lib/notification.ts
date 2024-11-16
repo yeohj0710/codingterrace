@@ -125,3 +125,40 @@ const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
   }
   return outputArray;
 };
+
+export async function sendNotificationToPostAuthor(
+  postId: number,
+  title: string,
+  message: string,
+  url: string
+) {
+  await fetch("/api/notify-post-author", {
+    method: "POST",
+    body: JSON.stringify({
+      postId,
+      title,
+      message,
+      url,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function saveSubscription(subscription: any) {
+  try {
+    const response = await fetch("/api/save-subscription", {
+      method: "POST",
+      body: JSON.stringify(subscription),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Subscription 저장 중 에러 발생");
+    }
+  } catch (error) {
+    console.error("Error saving subscription:", error);
+  }
+}

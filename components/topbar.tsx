@@ -11,10 +11,14 @@ export default function TopBar() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const pathname = usePathname();
   useEffect(() => {
-    async function fetchUser() {
-      const userData: any = await getUser();
-      setUser(userData);
-    }
+    const fetchUser = async () => {
+      try {
+        const userData: any = await getUser();
+        setUser(userData);
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      }
+    };
     fetchUser();
   }, [pathname]);
   const closeDrawer = () => {
@@ -30,10 +34,8 @@ export default function TopBar() {
           >
             🍀 코딩테라스
           </Link>
-          <div className="hidden sm:flex">
-            <div className="hidden sm:flex gap-5">
-              <MenuLinks />
-            </div>
+          <div className="hidden sm:flex gap-5">
+            <MenuLinks />
           </div>
         </div>
         <div className="flex items-center">

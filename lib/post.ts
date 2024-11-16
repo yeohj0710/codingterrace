@@ -67,6 +67,7 @@ export async function getPost(idx: number, category: string) {
         select: {
           idx: true,
           nickname: true,
+          avatar: true,
         },
       },
     },
@@ -121,7 +122,7 @@ export async function uploadPost(
       idx: true,
     },
   });
-  redirect(`${basePath}/${post.idx}`);
+  return post.idx;
 }
 
 export async function updatePost(category: string, formData: FormData) {

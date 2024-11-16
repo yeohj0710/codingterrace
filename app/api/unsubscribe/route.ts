@@ -12,8 +12,10 @@ export async function POST(request: Request) {
     }
     await db.subscription.delete({
       where: {
-        endpoint,
-        type,
+        endpoint_type: {
+          endpoint,
+          type,
+        },
       },
     });
     return NextResponse.json({ message: "Subscription removed" });

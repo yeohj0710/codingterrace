@@ -43,7 +43,12 @@ export async function POST(request: Request) {
             subscription.endpoint
           );
           await db.subscription.delete({
-            where: { endpoint: subscription.endpoint },
+            where: {
+              endpoint_type: {
+                endpoint: subscription.endpoint,
+                type: subscription.type,
+              },
+            },
           });
         } else {
           console.error(

@@ -13,6 +13,7 @@ model User {
   id         String   @unique
   password   String
   nickname   String   @unique
+  avatar     String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -57,11 +58,12 @@ model Comment {
 
 model Subscription {
   id         Int      @id @default(autoincrement())
-  endpoint   String   @unique
+  endpoint   String
+  type       String
   p256dh     String
   auth       String
-  type       String?
+  postId     Int?
   created_at DateTime @default(now())
 
-  @@unique([endpoint, type], name: "subscription_endpoint_type_unique")
+  @@unique([endpoint, type])
 }

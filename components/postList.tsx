@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import PostPagination from "@/components/postPagination";
 import removeMarkdown from "remove-markdown";
@@ -9,35 +9,6 @@ import { ko } from "date-fns/locale";
 import { getPosts } from "@/lib/post";
 import { ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
 import { postCache } from "@/lib/cache";
-
-interface Post {
-  title: string;
-  idx: number;
-  category: string;
-  nickname: string | null;
-  ip: string | null;
-  content: string;
-  created_at: Date;
-  _count: {
-    comment: number;
-  };
-  user: {
-    idx: number;
-    id: string;
-    password: string;
-    nickname: string;
-    created_at: Date;
-    updated_at: Date;
-  } | null;
-}
-
-interface PostListProps {
-  category: string;
-  basePath: string;
-  postsPerPage: number;
-  refreshKey: number;
-  setIsRefreshing: (isRefreshing: boolean) => void;
-}
 
 export default function PostList({
   category,
@@ -116,17 +87,18 @@ export default function PostList({
               className="block mb-4 p-4 bg-gray-100 rounded hover:bg-gray-200"
             >
               <div className="flex">
-                <div className="flex-1 flex flex-col min-h-24">
+                <div className="flex flex-col flex-1 min-h-24">
                   <h2 className="text-lg font-semibold line-clamp-1 break-al">
                     {post.title}
                   </h2>
                   <p className="text-sm text-gray-600 mt-2 line-clamp-1 break-all">
                     {plainTextContent}
                   </p>
-                  <div className="flex flex-row items-center gap-1 mt-auto text-xs text-gray-500 flex-nowrap">
-                    <span className="truncate max-w-[50%]">
-                      {post.user?.nickname ?? post.nickname}
-                    </span>
+                  <div className="flex flex-row items-center gap-2 mt-auto text-xs text-gray-500 flex-nowrap overflow-hidden">
+                    <TruncatedNickname
+                      nickname={post.user?.nickname ?? post.nickname ?? ""}
+                      avatarUrl={post.user?.avatar ?? null}
+                    />
                     {!post.user && post.ip ? (
                       <span className="text-gray-400 flex-shrink-0">
                         ({post.ip})
@@ -157,7 +129,7 @@ export default function PostList({
                   </div>
                 </div>
                 {imageUrl && (
-                  <div className="ml-4 w-24 h-24 flex-shrink-0 flex items-end">
+                  <div className="w-24 h-24 flex-shrink-0 flex items-end">
                     <img
                       src={imageUrl}
                       alt="게시글 이미지"
@@ -177,4 +149,69 @@ export default function PostList({
       />
     </div>
   );
+}
+
+function TruncatedNickname({
+  nickname,
+  avatarUrl,
+}: {
+  nickname: string;
+  avatarUrl?: string | null;
+}) {
+  const nicknameRef = useRef<HTMLSpanElement | null>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  useEffect(() => {
+    if (nicknameRef.current) {
+      const isOverflowing =
+        nicknameRef.current.scrollWidth > nicknameRef.current.clientWidth;
+      setIsTruncated(isOverflowing);
+    }
+  }, [nickname]);
+  return (
+    <span
+      ref={nicknameRef}
+      className={`truncate max-w-[70%] overflow-hidden text-ellipsis ${
+        isTruncated ? "-mr-4 sm:mr-0" : ""
+      }`}
+    >
+      {avatarUrl && (
+        <img
+          src={avatarUrl.replace("/public", "/avatar")}
+          alt={`${nickname}의 프로필 이미지`}
+          className="w-5 h-5 rounded-full object-cover inline-block mr-1.5"
+        />
+      )}
+      {nickname}
+    </span>
+  );
+}
+
+interface Post {
+  title: string;
+  idx: number;
+  category: string;
+  nickname: string | null;
+  ip: string | null;
+  content: string;
+  created_at: Date;
+  _count: {
+    comment: number;
+  };
+  user: {
+    idx: number;
+    id: string;
+    password: string;
+    nickname: string;
+    avatar: string | null;
+    created_at: Date;
+    updated_at: Date;
+  } | null;
+}
+
+interface PostListProps {
+  category: string;
+  basePath: string;
+  postsPerPage: number;
+  refreshKey: number;
+  setIsRefreshing: (isRefreshing: boolean) => void;
 }

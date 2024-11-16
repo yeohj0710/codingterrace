@@ -12,8 +12,10 @@ export async function POST(request: Request) {
     }
     const subscription = await db.subscription.findUnique({
       where: {
-        endpoint: endpoint,
-        type: type,
+        endpoint_type: {
+          endpoint: endpoint,
+          type: type,
+        },
       },
     });
     if (subscription) {

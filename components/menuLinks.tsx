@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export function MenuLinks() {
   return (
@@ -26,12 +27,30 @@ export function MenuLinks() {
 }
 
 export function UserLink({ user }: { user: any }) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (user?.avatar) {
+      function extractAvatarUrl(url: string): string {
+        return url.replace("/public", "/avatar");
+      }
+      setAvatarUrl(extractAvatarUrl(user.avatar));
+    }
+  }, [user]);
   return user ? (
     <Link
       href="/profile"
-      className="font-semibold whitespace-nowrap overflow-hidden text-ellipsis"
+      className="flex items-center font-semibold whitespace-nowrap overflow-hidden text-ellipsis"
     >
-      내 프로필
+      <span className="mr-2">내 프로필</span>
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt="프로필 이미지"
+          className="w-8 h-8 rounded-full object-cover"
+        />
+      ) : (
+        <div className="w-8 h-8 rounded-full bg-gray-300"></div> // Placeholder
+      )}
     </Link>
   ) : (
     <Link

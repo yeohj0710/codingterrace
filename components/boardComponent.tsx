@@ -106,17 +106,17 @@ export default function BoardComponent({
   };
   return (
     <div className="w-full sm:w-[640px] xl:w-1/2 px-5 py-7 bg-white sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
-      <div className="flex flex-row gap-[2%] justify-between mb-6 items-center">
+      <div className="flex flex-row gap-[2%] justify-between mb-5 sm:mb-6 items-center">
         <div className="flex items-center">
           <Link href={basePath} className="font-bold text-xl">
             {title}
           </Link>
-          <div className="flex items-center ml-2">
+          <div className="flex items-center ml-2 gap-2">
             <button
               onClick={() => {
                 setRefreshKey((prev) => prev + 1);
               }}
-              className={`mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+              className={`mr-0 sm:mr-2 ${isRefreshing ? "animate-spin" : ""}`}
             >
               <ArrowPathIcon className="w-5 h-5 text-gray-500" />
             </button>
@@ -133,8 +133,8 @@ export default function BoardComponent({
                 <BellSlashIcon className="w-6 h-6 text-red-500" />
               )}
             </button>
-            <span className="text-xs text-red-400 ml-2">
-              알림을 켜서 해당 게시판의 새 글 알림을 받아볼 수 있어요.
+            <span className="hidden sm:block text-xs text-red-400 ml-2">
+              {`* 알림을 켜서 ${title}의 새 글 알림을 받을 수 있어요.`}
             </span>
           </div>
         </div>
@@ -149,11 +149,11 @@ export default function BoardComponent({
           )}
         </div>
       </div>
-      {category === "board" && (
-        <span className="text-xs text-gray-400 block -mt-3 mb-3 ml-1">
-          * 부적절한 게시글은 임의로 삭제될 수 있습니다.
+      <div className="block space-y-2 mb-3">
+        <span className="sm:hidden text-xs text-red-400 block ml-1">
+          {`* 알림을 켜서 ${title}의 새 글 알림을 받을 수 있어요.`}
         </span>
-      )}
+      </div>
       <PostList
         category={category}
         basePath={basePath}
@@ -161,6 +161,11 @@ export default function BoardComponent({
         refreshKey={refreshKey}
         setIsRefreshing={setIsRefreshing}
       />
+      {category === "board" && (
+        <span className="text-xs text-gray-400 block ml-1 mt-6 sm:mt-8">
+          * 부적절한 게시글은 임의로 삭제될 수 있습니다.
+        </span>
+      )}
     </div>
   );
 }

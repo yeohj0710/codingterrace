@@ -104,7 +104,15 @@ export default function Comment({
   return (
     <div className="border-b border-gray-300 py-2 mb-2 last:border-b-0">
       <div className="flex items-start">
-        <div className="w-10 h-10 bg-gray-200 rounded-full mr-4"></div>
+        {comment.user?.avatar ? (
+          <img
+            src={comment.user.avatar.replace("/public", "/avatar")}
+            alt={`${comment.user.nickname ?? "익명"}의 프로필 이미지`}
+            className="w-10 h-10 rounded-full object-cover mr-4"
+          />
+        ) : (
+          <div className="w-10 h-10 bg-gray-200 rounded-full mr-4"></div>
+        )}
         <div className="flex-1">
           <div className="flex justify-between items-center -mb-3">
             <div className="flex items-baseline">
@@ -149,6 +157,7 @@ export default function Comment({
                       value={editedPassword}
                       onChange={(e) => setEditedPassword(e.target.value)}
                       className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
+                      autoComplete="off"
                     />
                   </div>
                 )}

@@ -88,7 +88,16 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
               {categoryToName(post.category)}
             </span>
             <div className="flex flex-row gap-1 text-sm text-gray-500">
-              <span>{post.user?.nickname ?? post.nickname}</span>
+              <div className="flex items-center gap-2">
+                {post.user?.avatar && (
+                  <img
+                    src={post.user.avatar.replace("/public", "/avatar")}
+                    alt={`${post.user.nickname}의 프로필 이미지`}
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                )}
+                <span>{post.user?.nickname ?? post.nickname}</span>
+              </div>
               {!post.user && post.ip ? (
                 <span className="text-gray-400">({post.ip})</span>
               ) : null}

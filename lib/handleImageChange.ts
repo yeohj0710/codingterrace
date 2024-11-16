@@ -13,7 +13,6 @@ export async function handleImageChange(
   setIsUploadingImages(true);
   let currentSelectionStart = contentRef.current?.selectionStart || 0;
   let currentSelectionEnd = contentRef.current?.selectionEnd || 0;
-
   for (const file of fileArray) {
     const { success, result, error } = await getUploadUrl();
     if (!success) {
@@ -45,11 +44,8 @@ export async function handleImageChange(
     const afterSelection = content.substring(currentSelectionEnd);
     const newContent = beforeSelection + markdownImageTag + afterSelection;
     setContent(newContent);
-
-    // Update cursor position after each image insertion
     currentSelectionStart = currentSelectionStart + markdownImageTag.length;
     currentSelectionEnd = currentSelectionStart;
-
     setTimeout(() => {
       if (contentRef.current) {
         contentRef.current.selectionStart = currentSelectionStart;
@@ -58,7 +54,6 @@ export async function handleImageChange(
       }
     }, 0);
   }
-
   setIsUploadingImages(false);
   event.target.value = "";
 }

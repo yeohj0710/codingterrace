@@ -7,7 +7,7 @@ import { getPost, uploadPost, updatePost } from "@/lib/post";
 import { handlePaste } from "@/lib/handlePaste";
 import { useRouter } from "next/navigation";
 import { handleImageChange } from "@/lib/handleImageChange";
-import { sendNotification } from "@/lib/notification";
+import { sendNotification, saveSubscription } from "@/lib/notification";
 import { clearPostCache } from "@/lib/cache";
 import { categoryToName } from "@/lib/utils";
 
@@ -118,12 +118,17 @@ export default function PostForm({
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     if (mode === "add") {
-      await uploadPost(category, basePath, formData);
+      const postId = await uploadPost(category, basePath, formData);
       try {
         const notificationTitle = `${categoryToName(
           category
         )}에 새 글이 게시되었어요.`;
-        const notificationMessage = `${title}\n${content}`;
+        const maxLength = 50;
+        const truncatedContent =
+          content.length > maxLength
+            ? content.slice(0, maxLength) + "..."
+            : content;
+        const notificationMessage = `${title}\n${truncatedContent}`;
         const postUrl = `${basePath}`;
         await sendNotification(
           notificationTitle,
@@ -131,8 +136,33 @@ export default function PostForm({
           category,
           postUrl
         );
+        if ("serviceWorker" in navigator && "PushManager" in window) {
+          const permission = await Notification.requestPermission();
+          if (permission === "granted") {
+            const registration = await navigator.serviceWorker.ready;
+            let subscription = await registration.pushManager.getSubscription();
+            if (!subscription) {
+              subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+              });
+            }
+            const subscriptionData = {
+              ...subscription.toJSON(),
+              type: "postAuthor",
+              postId: postId,
+            };
+            await saveSubscription(subscriptionData);
+          } else {
+            console.warn("알림 권한이 필요합니다.");
+          }
+        }
       } catch (error) {
         console.error(`알림 발송 중 에러가 발생하였습니다: ${error}`);
+      }
+      if (postId) {
+        router.push(`${basePath}/${postId}`);
+        return;
       }
     } else if (mode === "edit" && idx) {
       formData.append("idx", idx);
@@ -188,6 +218,7 @@ export default function PostForm({
                   className="w-full px-2 py-1.5 border rounded-lg"
                   value={nickname}
                   onChange={handleNicknameChange}
+                  autoComplete="off"
                 />
               )}
             </div>
@@ -211,6 +242,7 @@ export default function PostForm({
                   onChange={handlePasswordChange}
                   className="w-full px-2 py-1.5 border rounded-lg"
                   required={mode === "edit"}
+                  autoComplete="off"
                 />
               )}
             </div>
