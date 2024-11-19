@@ -13,14 +13,14 @@ export function categoryToName(category: string): string {
 
 export function stripMarkdown(content: string): string {
   return content
-    .replace(/!\[[^\]]*\]\(.*?\)/g, "")
+    .replace(/!\[[^\]]*\]\([\s\S]*?\)/g, "")
     .replace(/#[^\n]*/g, "")
     .replace(/<[^>]*>/g, "")
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
     .replace(/`(.*?)`/g, "$1")
-    .replace(/\n/g, " ")
-    .replace(/\[([^\]]*)\]\(.*?\)/g, "$1");
+    .replace(/\n/g, " ");
+  // .replace(/\[([^\]]*)\]\([\s\S]*?\)/g, "$1");
 }
 
 export function formatIp(ip: string | null): string {
