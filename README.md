@@ -41,17 +41,21 @@
 #### 주요 특징:
 - **이미지 첨부의 간편함**:  
   - **클립보드 붙여넣기**: 복사한 이미지를 편집기에서 바로 붙여넣으면 자동으로 업로드됩니다.
+ 
     ![1](https://github.com/user-attachments/assets/0cff9300-0f88-4978-985d-34f3d4c1deda)
-  - **GIF 지원**: 정적 이미지뿐 아니라 GIF와 같은 동적 이미지도 업로드 가능합니다.
+  - 물론 이미지 첨부 버튼을 눌러서도 간단하게 이미지를 글 중간의 원하는 위치에 업로드 할 수 있습니다.
+  
     ![2](https://github.com/user-attachments/assets/1f943d82-cd6c-4632-b499-29ce0f21523c)
-
+  - **GIF 지원**: 정적 이미지뿐 아니라 GIF와 같은 동적 이미지도 업로드 가능합니다.
 
 - **코드 블록 작성 및 하이라이팅**:  
   다양한 언어의 코드를 지원하며, 코드 하이라이팅으로 가독성을 높였습니다.
+  
   ![image](https://github.com/user-attachments/assets/1d94b899-8101-4fbf-938d-0f846757f709)
 
 - **Markdown 문법 지원**:  
   기본적인 Markdown 문법을 통해 굵은 글씨, 기울임 글씨, 제목, 리스트, 표 등 다양한 서식을 자유롭게 활용할 수 있습니다.
+  
   ![image](https://github.com/user-attachments/assets/7ecf1721-0ecb-4f06-b929-865bb4bfa1a9)
 
 <br>
