@@ -92,7 +92,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           ? content.slice(0, maxLength) + "..."
           : content;
       const notificationMessage = truncatedContent;
-      const postUrl = `${window.location.origin}/post/${postIdx}`;
+      const postUrl = `${window.location.origin}/`;
       await sendNotificationToPostAuthor(
         postIdx,
         notificationTitle,
