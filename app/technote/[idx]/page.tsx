@@ -1,5 +1,6 @@
 import PostView from "@/components/postView";
 import { getPost } from "@/lib/post";
+import { stripMarkdown } from "@/lib/utils";
 
 async function fetchPostData(idx: string) {
   const post = await getPost(Number(idx), "technote");
@@ -32,10 +33,10 @@ export async function generateMetadata({
       };
   return {
     title: post.title,
-    description: post.content.slice(0, 150),
+    description: stripMarkdown(post.content).slice(0, 150),
     openGraph: {
       title: post.title,
-      description: post.content.slice(0, 150),
+      description: stripMarkdown(post.content).slice(0, 150),
       url: `https://codingterrace.com/technote/${idx}`,
       images: thumbnail,
       type: "article",
@@ -44,7 +45,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary_large_image",
       title: post.title,
-      description: post.content.slice(0, 150),
+      description: stripMarkdown(post.content).slice(0, 150),
       images: thumbnail,
     },
   };

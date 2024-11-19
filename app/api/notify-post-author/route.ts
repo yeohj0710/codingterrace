@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { stripMarkdown } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import webpush from "web-push";
 
@@ -48,6 +49,7 @@ async function handleExpiredSubscription(
 export async function POST(request: Request) {
   try {
     const { postId, title, message, url } = await request.json();
+    const strippedMessage = stripMarkdown(message);
     if (!postId || !title || !message || !url) {
       return NextResponse.json(
         { error: "postId, title, message, url 중 일부가 누락되었습니다." },
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
     };
     const payload = JSON.stringify({
       title,
-      message,
+      strippedMessage,
       url,
     });
     try {

@@ -11,6 +11,18 @@ export function categoryToName(category: string): string {
   }
 }
 
+export function stripMarkdown(content: string): string {
+  return content
+    .replace(/!\[[^\]]*\]\(.*?\)/g, "")
+    .replace(/#[^\n]*/g, "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`(.*?)`/g, "$1")
+    .replace(/\n/g, " ")
+    .replace(/\[([^\]]*)\]\(.*?\)/g, "$1");
+}
+
 export function formatIp(ip: string | null): string {
   if (ip === null) {
     return "192.168";

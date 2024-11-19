@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { stripMarkdown } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import webpush from "web-push";
 
@@ -11,6 +12,7 @@ webpush.setVapidDetails(
 export async function POST(request: Request) {
   try {
     const { title, message, url, type, postId } = await request.json();
+    const strippedMessage = stripMarkdown(message);
     if (!type) {
       return NextResponse.json(
         { error: "Request에서 category type이 누락되었습니다." },
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
     });
     const payload = JSON.stringify({
       title,
-      message,
+      strippedMessage,
       url,
     });
     const notificationPromises = subscriptions.map(async (subscription) => {
