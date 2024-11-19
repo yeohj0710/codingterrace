@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     };
     const payload = JSON.stringify({
       title,
-      strippedMessage,
+      message: strippedMessage,
       url,
     });
     try {

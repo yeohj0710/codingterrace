@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     });
     const payload = JSON.stringify({
       title,
-      strippedMessage,
+      message: strippedMessage,
       url,
     });
     const notificationPromises = subscriptions.map(async (subscription) => {
