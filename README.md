@@ -1,6 +1,14 @@
 # 코딩테라스
 
+<br>
+
 [https://codingterrace.com/](https://codingterrace.com/)
+
+<br>
+
+![image](https://github.com/user-attachments/assets/6c55d858-9c66-442e-8cf2-fc35dc14f77d)
+
+<br>
 
 **코딩테라스**는 개발자가 직접 기능을 구현하고 체험하며, 이를 통해 새로운 아이디어를 실현할 수 있는 **소통 공간**입니다!
 
