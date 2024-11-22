@@ -17,7 +17,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [typography, lineClamp], // 플러그인 배열에 추가한 부분
+  plugins: [typography, lineClamp],
 };
 
 export default config;
