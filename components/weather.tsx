@@ -134,9 +134,10 @@ export default function Weather() {
         </span>
       </div>
       <div className="flex flex-col text-sm text-gray-500 gap-1">
-        <span>"오늘 패딩 입을 날씨인가?" 매번 확인하기 귀찮죠?</span>
+        <span>&quot;오늘 패딩 입을 날씨인가?&quot; 매번 확인하기 귀찮죠?</span>
         <span>코딩테라스가 날씨를 1초 만에 확인하게 도와드릴게요.</span>
       </div>
+
       {data && (
         <div className="mt-2 p-3 bg-green-100 text-green-800 rounded-md">
           {data}
@@ -162,7 +163,7 @@ export default function Weather() {
             <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
           </>
         ) : (
-          "날씨 알림 수동 발송"
+          <>날씨 알림 수동 발송</>
         )}
       </button>
     </div>
