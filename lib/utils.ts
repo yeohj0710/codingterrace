@@ -5,7 +5,9 @@ export function categoryToName(category: string): string {
     case "technote":
       return "기술노트";
     case "main":
-      return "메가폰";
+      return "사용자 알림";
+    case "weather":
+      return "날씨";
     default:
       return "자유게시판";
   }

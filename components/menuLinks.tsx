@@ -17,16 +17,16 @@ export function MenuLinks() {
         자유게시판
       </Link>
       <Link
-        href="/notification"
-        className="font-bold whitespace-nowrap overflow-hidden text-ellipsis"
-      >
-        알림 보내기
-      </Link>
-      <Link
         href="/python"
         className="font-bold whitespace-nowrap overflow-hidden text-ellipsis"
       >
         파이썬 테스트
+      </Link>
+      <Link
+        href="/notification"
+        className="font-bold whitespace-nowrap overflow-hidden text-ellipsis"
+      >
+        알림 보내기
       </Link>
     </>
   );

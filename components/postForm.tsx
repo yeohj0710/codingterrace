@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { handleImageChange } from "@/lib/handleImageChange";
 import { sendNotification, saveSubscription } from "@/lib/notification";
 import { clearPostCache } from "@/lib/cache";
-import { categoryToName } from "@/lib/utils";
+import { categoryToName, stripMarkdown } from "@/lib/utils";
 
 interface PostFormProps {
   mode: "add" | "edit";
@@ -124,11 +124,12 @@ export default function PostForm({
         const notificationTitle = `${categoryToName(
           category
         )}에 새 글이 게시되었어요.`;
+        const strippedContent = stripMarkdown(content);
         const maxLength = 50;
         const truncatedContent =
-          content.length > maxLength
-            ? content.slice(0, maxLength) + "..."
-            : content;
+          strippedContent.length > maxLength
+            ? strippedContent.slice(0, maxLength) + "..."
+            : strippedContent;
         const notificationMessage = `${title}\n${truncatedContent}`;
         const postUrl = `${basePath}`;
         await sendNotification(

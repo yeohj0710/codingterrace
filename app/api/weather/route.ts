@@ -9,14 +9,24 @@ export async function GET() {
         { status: 500 }
       );
     }
-
-    const response = await fetch(`${pythonApiUrl}/weather`, { method: "GET" }); // Python API의 /weather 엔드포인트 호출
+    const response = await fetch(`${pythonApiUrl}/weather`, {
+      method: "GET",
+      headers: {
+        "Cache-Control": "no-cache",
+      },
+    });
     if (!response.ok) {
       throw new Error("Failed to fetch data from Python API");
     }
-
-    const data = await response.text(); // Python API는 텍스트 형식으로 반환
-    return NextResponse.json({ message: data });
+    const data = await response.text();
+    return NextResponse.json(
+      { message: data },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
