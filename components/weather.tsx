@@ -11,8 +11,9 @@ export default function Weather() {
   const [data, setData] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isWakingUp, setIsWakingUp] = useState(false);
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
       if (!("serviceWorker" in navigator)) {
@@ -50,7 +51,6 @@ export default function Weather() {
     };
     checkSubscriptionStatus();
   }, []);
-
   const handleNotificationToggle = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       window.alert("이 브라우저는 알림을 지원하지 않습니다.");
@@ -103,7 +103,7 @@ export default function Weather() {
                 .join(" ") || "";
             const address = addressParts || "";
             const userConfirmed = window.confirm(
-              `현재 위치하고 계신 지역 근처인 '${address}'의 날씨를 매일 오전 7시에 보내드릴게요.`
+              `현재 위치하고 계신 '${address}'의 날씨를 매일 오전 7시에 보내드릴게요.`
             );
             if (!userConfirmed) {
               window.alert("위치 확인이 취소되었습니다.");
@@ -147,6 +147,7 @@ export default function Weather() {
     setLoading(true);
     setError(null);
     setData(null);
+    setIsWakingUp(false);
     try {
       let latitude: number | null = null;
       let longitude: number | null = null;
@@ -175,10 +176,14 @@ export default function Weather() {
         setLoading(false);
         return;
       }
+      const wakeUpTimeout = setTimeout(() => {
+        setIsWakingUp(true);
+      }, 10000);
       const response = await fetch(
         `/api/weather?latitude=${latitude}&longitude=${longitude}`,
         { method: "GET" }
       );
+      clearTimeout(wakeUpTimeout);
       if (!response.ok) {
         throw new Error("날씨 데이터를 가져오는데 실패했습니다.");
       }
@@ -190,6 +195,7 @@ export default function Weather() {
       setError(error.message);
     } finally {
       setLoading(false);
+      setIsWakingUp(false);
     }
   };
   return (
@@ -201,9 +207,7 @@ export default function Weather() {
           className="text-gray-500"
           disabled={isProcessing}
         >
-          {isSubscribed === null ? (
-            <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
-          ) : isProcessing ? (
+          {isProcessing ? (
             <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
           ) : isSubscribed ? (
             <BellIcon className="w-6 h-6 text-green-500" />
@@ -222,6 +226,12 @@ export default function Weather() {
         <span>&quot;오늘 패딩 입을 날씨인가?&quot; 매번 확인하기 귀찮죠?</span>
         <span>코딩테라스가 날씨를 1초 만에 확인하게 도와드릴게요.</span>
       </div>
+      {isWakingUp && (
+        <div className="flex items-center mt-2 text-sm text-gray-500">
+          Python API 서버를 깨우는 중입니다...
+          <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-gray-500 rounded-full animate-spin"></div>
+        </div>
+      )}
       {data && (
         <div className="mt-2 p-3 bg-green-100 text-green-800 rounded-md">
           {data}
