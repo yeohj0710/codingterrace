@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   requestNotificationPermission,
   toggleSubscription,
-  sendNotification,
 } from "@/lib/notification";
 import { BellIcon, BellSlashIcon } from "@heroicons/react/24/solid";
 
@@ -14,6 +13,7 @@ export default function Weather() {
   const [error, setError] = useState<string | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
       if (!("serviceWorker" in navigator)) {
@@ -51,6 +51,7 @@ export default function Weather() {
     };
     checkSubscriptionStatus();
   }, []);
+
   const handleNotificationToggle = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       window.alert("이 브라우저는 알림을 지원하지 않습니다.");
@@ -69,9 +70,59 @@ export default function Weather() {
           return;
         }
       }
-      await toggleSubscription("weather", () => {
-        window.alert("알림 권한이 필요합니다.");
-      });
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+      if (!isSubscribed) {
+        if ("geolocation" in navigator) {
+          const getPosition = () => {
+            return new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+              });
+            });
+          };
+          try {
+            const position = await getPosition();
+            latitude = position.coords.latitude;
+            longitude = position.coords.longitude;
+            const response = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ko`
+            );
+            const locationData = await response.json();
+            const address =
+              locationData.localityInfo?.administrative
+                ?.map((item: any) => item.name)
+                .join(" ") || "";
+            const userConfirmed = window.confirm(
+              `현재 위치하고 계신 ${address}의 날씨를 매일 오전 7시에 보내드릴게요.`
+            );
+            if (!userConfirmed) {
+              window.alert("위치 확인이 취소되었습니다.");
+              setIsProcessing(false);
+              return;
+            }
+            await toggleSubscription(
+              "weather",
+              () => {
+                window.alert("알림 권한이 필요합니다.");
+              },
+              latitude,
+              longitude
+            );
+          } catch (error) {
+            console.error("위치 정보를 가져오는 중 에러:", error);
+            window.alert("위치 정보를 가져올 수 없습니다.");
+          }
+        } else {
+          window.alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
+        }
+      } else {
+        await toggleSubscription("weather", () => {
+          window.alert("알림 권한이 필요합니다.");
+        });
+      }
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
@@ -85,30 +136,57 @@ export default function Weather() {
       setIsProcessing(false);
     }
   };
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
+    setData(null);
     try {
-      const response = await fetch("/api/weather", { method: "GET" });
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+      if ("geolocation" in navigator) {
+        const getPosition = () => {
+          return new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            });
+          });
+        };
+        try {
+          const position = await getPosition();
+          latitude = position.coords.latitude;
+          longitude = position.coords.longitude;
+        } catch (error) {
+          console.error("위치 정보를 가져오는 중 에러:", error);
+          window.alert("위치 정보를 가져올 수 없습니다.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        window.alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
+        setLoading(false);
+        return;
+      }
+      const response = await fetch(
+        `/api/weather?latitude=${latitude}&longitude=${longitude}`,
+        { method: "GET" }
+      );
       if (!response.ok) {
-        throw new Error("Failed to fetch data");
+        throw new Error("날씨 데이터를 가져오는데 실패했습니다.");
       }
       const result = await response.json();
       const weatherMessage =
-        result.message || "날씨 데이터가 존재하지 않습니다.";
+        result.message || "날씨 데이터를 가져올 수 없습니다.";
       setData(weatherMessage);
-      await sendNotification(
-        "오늘의 날씨",
-        weatherMessage,
-        "weather",
-        "python"
-      );
     } catch (error: any) {
       setError(error.message);
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 bg-white p-5 gap-2 relative sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
       <div className="flex items-center gap-2 flex-wrap">
@@ -158,11 +236,11 @@ export default function Weather() {
       >
         {loading ? (
           <>
-            날씨 알림 발송 중
+            날씨 정보를 가져오는 중
             <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
           </>
         ) : (
-          <>날씨 알림 수동 발송</>
+          <>현재 위치 날씨 확인</>
         )}
       </button>
     </div>

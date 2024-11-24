@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { deleteSubscription } from "@/lib/subscription";
 import { stripMarkdown } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import webpush from "web-push";
@@ -20,26 +21,7 @@ async function handleExpiredSubscription(
       console.error("postId가 undefined입니다. 삭제 작업을 건너뜁니다.");
       return;
     }
-    if (postId === null) {
-      await db.subscription.deleteMany({
-        where: {
-          endpoint: endpoint,
-          type: type,
-          postId: null,
-        },
-      });
-    } else {
-      await db.subscription.delete({
-        where: {
-          endpoint_type_postId: {
-            endpoint: endpoint,
-            type: type,
-            postId: postId,
-          },
-        },
-      });
-    }
-
+    await deleteSubscription(endpoint, type, postId);
     console.log("subscription 삭제 완료:", endpoint);
   } catch (error) {
     console.error("subscription 삭제 중 에러 발생:", error);

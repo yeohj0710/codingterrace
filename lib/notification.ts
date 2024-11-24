@@ -23,7 +23,9 @@ export const requestNotificationPermission = async (showAlert: () => void) => {
 
 export const toggleSubscription = async (
   type: string,
-  showAlert: () => void
+  showAlert?: () => void,
+  latitude?: number | null,
+  longitude?: number | null
 ) => {
   if (!("serviceWorker" in navigator)) return;
   try {
@@ -62,8 +64,8 @@ export const toggleSubscription = async (
           await subscription.unsubscribe();
         }
       } else {
-        await saveSubscriptionToServer(subscription, type);
-        console.log(`subscription 생성 완료: ${categoryToName(type)}`);
+        await saveSubscriptionToServer(subscription, type, latitude, longitude);
+        console.log(`Subscription 생성 완료: ${categoryToName(type)}`);
       }
     } else {
       const convertedVapidKey = urlBase64ToUint8Array(
@@ -73,12 +75,22 @@ export const toggleSubscription = async (
         userVisibleOnly: true,
         applicationServerKey: convertedVapidKey,
       });
-      await saveSubscriptionToServer(newSubscription, type);
-      console.log(`subscription 생성 완료: ${categoryToName(type)}`);
+      await saveSubscriptionToServer(
+        newSubscription,
+        type,
+        null,
+        latitude,
+        longitude
+      );
+      console.log(`Subscription 생성 완료: ${categoryToName(type)}`);
     }
   } catch (error) {
     console.error("알림 on/off 전환 중 에러가 발생했습니다:", error);
-    if (error instanceof Error && error.name === "NotAllowedError") {
+    if (
+      error instanceof Error &&
+      error.name === "NotAllowedError" &&
+      showAlert
+    ) {
       showAlert();
     }
   }
@@ -87,7 +99,9 @@ export const toggleSubscription = async (
 const saveSubscriptionToServer = async (
   subscription: PushSubscription,
   type: string,
-  postId?: number
+  postId?: number | null,
+  latitude?: number | null,
+  longitude?: number | null
 ) => {
   try {
     const p256dh = subscription.getKey("p256dh");
@@ -108,6 +122,8 @@ const saveSubscriptionToServer = async (
         },
         type: type,
         postId: postId || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
       }),
       headers: {
         "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
+import { deleteSubscription } from "@/lib/subscription";
 
 export async function POST(request: Request) {
   try {
@@ -10,25 +11,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (postId === null) {
-      await db.subscription.deleteMany({
-        where: {
-          endpoint: endpoint,
-          type: type,
-          postId: null,
-        },
-      });
-    } else {
-      await db.subscription.delete({
-        where: {
-          endpoint_type_postId: {
-            endpoint: endpoint,
-            type: type,
-            postId: postId,
-          },
-        },
-      });
-    }
+    await deleteSubscription(endpoint, type, postId);
     const remainingSubscriptions = await db.subscription.findMany({
       where: {
         endpoint: endpoint,

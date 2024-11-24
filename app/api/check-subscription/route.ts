@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import db from "@/lib/db";
+import { findSubscription } from "@/lib/subscription";
 
 export async function POST(request: Request) {
   try {
@@ -10,24 +10,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const subscription =
-      postId === null
-        ? await db.subscription.findFirst({
-            where: {
-              endpoint: endpoint,
-              type: type,
-              postId: null,
-            },
-          })
-        : await db.subscription.findUnique({
-            where: {
-              endpoint_type_postId: {
-                endpoint: endpoint,
-                type: type,
-                postId: postId,
-              },
-            },
-          });
+    const subscription = await findSubscription(endpoint, type, postId);
     if (subscription) {
       return NextResponse.json({ exists: true });
     } else {

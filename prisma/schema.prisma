@@ -64,6 +64,8 @@ model Subscription {
   auth       String
   postId     Int?
   created_at DateTime @default(now())
+  latitude   Float?
+  longitude  Float?
 
   @@unique([endpoint, type, postId])
 }

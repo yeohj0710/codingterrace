@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { deleteSubscription } from "@/lib/subscription";
 import { stripMarkdown } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import webpush from "web-push";
@@ -44,15 +45,11 @@ export async function POST(request: Request) {
             "다음의 subscription이 만료되었거나 해지되어 삭제합니다:",
             subscription.endpoint
           );
-          await db.subscription.delete({
-            where: {
-              endpoint_type_postId: {
-                endpoint: subscription.endpoint,
-                type: subscription.type,
-                postId: postId || null,
-              },
-            },
-          });
+          await deleteSubscription(
+            subscription.endpoint,
+            subscription.type,
+            postId
+          );
         } else {
           console.error(
             "다음의 endpoint로 알림을 발송하는 데 실패하였습니다:",
