@@ -137,7 +137,6 @@ export default function Weather() {
         <span>&quot;오늘 패딩 입을 날씨인가?&quot; 매번 확인하기 귀찮죠?</span>
         <span>코딩테라스가 날씨를 1초 만에 확인하게 도와드릴게요.</span>
       </div>
-
       {data && (
         <div className="mt-2 p-3 bg-green-100 text-green-800 rounded-md">
           {data}

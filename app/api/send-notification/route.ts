@@ -13,7 +13,6 @@ export async function POST(request: Request) {
   try {
     const { title, message, url, type, postId } = await request.json();
     const strippedMessage = stripMarkdown(message);
-    console.log("Stripped Message:", strippedMessage);
     if (!type) {
       return NextResponse.json(
         { error: "Request에서 category type이 누락되었습니다." },

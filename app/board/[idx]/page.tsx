@@ -1,3 +1,4 @@
+import OpenExternalInKakao from "@/components/openExternalInKakao";
 import PostView from "@/components/postView";
 import { getPost } from "@/lib/post";
 import { stripMarkdown } from "@/lib/utils";
@@ -52,5 +53,10 @@ export async function generateMetadata({
 }
 
 export default function BoardPostPage({ params }: { params: { idx: string } }) {
-  return <PostView idx={params.idx} category="board" basePath="/board" />;
+  return (
+    <>
+      <OpenExternalInKakao />
+      <PostView idx={params.idx} category="board" basePath="/board" />;
+    </>
+  );
 }

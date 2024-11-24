@@ -1,3 +1,4 @@
+import db from "./db";
 import { categoryToName } from "./utils";
 
 export const requestNotificationPermission = async (showAlert: () => void) => {
@@ -125,11 +126,15 @@ export const sendNotification = async (
   title: string,
   message: string,
   type: string,
-  url: string
+  url: string,
+  baseUrl?: string
 ) => {
   try {
     const payload = JSON.stringify({ title, message, type, url });
-    const response = await fetch("/api/send-notification", {
+    const apiUrl = baseUrl
+      ? `${baseUrl}/api/send-notification`
+      : "/api/send-notification";
+    const response = await fetch(apiUrl, {
       method: "POST",
       body: payload,
       headers: {
@@ -190,4 +195,10 @@ export async function saveSubscription(subscription: any) {
   } catch (error) {
     console.error("Error saving subscription:", error);
   }
+}
+
+export async function getAllSubscriptionsByType(type: string) {
+  return await db.subscription.findMany({
+    where: { type },
+  });
 }

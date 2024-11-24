@@ -1,3 +1,4 @@
+import OpenExternalInKakao from "@/components/openExternalInKakao";
 import PostView from "@/components/postView";
 import { getPost } from "@/lib/post";
 import { stripMarkdown } from "@/lib/utils";
@@ -56,5 +57,10 @@ export default function TechnotePostPage({
 }: {
   params: { idx: string };
 }) {
-  return <PostView idx={params.idx} category="technote" basePath="/technote" />;
+  return (
+    <>
+      <OpenExternalInKakao />
+      <PostView idx={params.idx} category="technote" basePath="/technote" />
+    </>
+  );
 }

@@ -1,3 +1,4 @@
+import OpenExternalInKakao from "@/components/openExternalInKakao";
 import Weather from "@/components/weather";
 
 export default function Python() {
@@ -10,6 +11,7 @@ export default function Python() {
           있어요.
         </span>
       </div>
+      <OpenExternalInKakao />
       <Weather />
     </div>
   );
