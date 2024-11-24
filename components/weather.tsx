@@ -11,7 +11,7 @@ export default function Weather() {
   const [data, setData] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isWakingUp, setIsWakingUp] = useState(false);
   useEffect(() => {
@@ -207,7 +207,9 @@ export default function Weather() {
           className="text-gray-500"
           disabled={isProcessing}
         >
-          {isProcessing ? (
+          {isSubscribed === null ? (
+            <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
+          ) : isProcessing ? (
             <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
           ) : isSubscribed ? (
             <BellIcon className="w-6 h-6 text-green-500" />
