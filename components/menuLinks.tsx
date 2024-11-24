@@ -17,10 +17,10 @@ export function MenuLinks() {
         자유게시판
       </Link>
       <Link
-        href="/python"
+        href="/weather"
         className="font-bold whitespace-nowrap overflow-hidden text-ellipsis"
       >
-        파이썬 테스트
+        날씨 알리미
       </Link>
       <Link
         href="/notification"
