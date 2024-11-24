@@ -11,9 +11,8 @@ export default function Weather() {
   const [data, setData] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
       if (!("serviceWorker" in navigator)) {
@@ -91,12 +90,20 @@ export default function Weather() {
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ko`
             );
             const locationData = await response.json();
-            const address =
+            const addressParts =
               locationData.localityInfo?.administrative
                 ?.map((item: any) => item.name)
+                .filter((name: string) => name !== "대한민국")
+                .reduce((unique: string[], name: string) => {
+                  if (!unique.includes(name)) {
+                    unique.push(name);
+                  }
+                  return unique;
+                }, [])
                 .join(" ") || "";
+            const address = addressParts || "";
             const userConfirmed = window.confirm(
-              `현재 위치하고 계신 ${address}의 날씨를 매일 오전 7시에 보내드릴게요.`
+              `현재 위치하고 계신 지역 근처인 '${address}'의 날씨를 매일 오전 7시에 보내드릴게요.`
             );
             if (!userConfirmed) {
               window.alert("위치 확인이 취소되었습니다.");
@@ -136,7 +143,6 @@ export default function Weather() {
       setIsProcessing(false);
     }
   };
-
   const fetchData = async () => {
     setLoading(true);
     setError(null);
@@ -186,7 +192,6 @@ export default function Weather() {
       setLoading(false);
     }
   };
-
   return (
     <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 bg-white p-5 gap-2 relative sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
       <div className="flex items-center gap-2 flex-wrap">
@@ -196,7 +201,9 @@ export default function Weather() {
           className="text-gray-500"
           disabled={isProcessing}
         >
-          {isProcessing ? (
+          {isSubscribed === null ? (
+            <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
+          ) : isProcessing ? (
             <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
           ) : isSubscribed ? (
             <BellIcon className="w-6 h-6 text-green-500" />

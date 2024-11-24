@@ -64,7 +64,13 @@ export const toggleSubscription = async (
           await subscription.unsubscribe();
         }
       } else {
-        await saveSubscriptionToServer(subscription, type, latitude, longitude);
+        await saveSubscriptionToServer(
+          subscription,
+          type,
+          null,
+          latitude,
+          longitude
+        );
         console.log(`Subscription 생성 완료: ${categoryToName(type)}`);
       }
     } else {

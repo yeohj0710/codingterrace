@@ -28,7 +28,7 @@ export default function BoardComponent({
   const [isOperator, setIsOperator] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   const canWrite = category !== "technote" || isOperator;
@@ -133,7 +133,9 @@ export default function BoardComponent({
               className="text-gray-500"
               disabled={isProcessing}
             >
-              {isProcessing ? (
+              {isSubscribed === null ? (
+                <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
+              ) : isProcessing ? (
                 <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
               ) : isSubscribed ? (
                 <BellIcon className="w-6 h-6 text-green-500" />
