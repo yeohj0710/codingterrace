@@ -16,14 +16,14 @@ export async function GET() {
     let isRequestSuccessful = false;
     let serverResponseMessage: string | null = null;
     try {
-      const response = await fetch(`${pythonApiUrl}/`, {
+      const response = await fetch(`${pythonApiUrl}/weather`, {
         method: "GET",
         headers: { "Cache-Control": "no-cache" },
+        signal: controller.signal,
       });
       if (response.ok) {
         isRequestSuccessful = true;
-        const responseData = await response.json();
-        serverResponseMessage = responseData.message || null;
+        serverResponseMessage = await response.text();
         console.log(
           "서버가 이미 깨어있어요. 요청에 대한 응답을 성공적으로 받았습니다:",
           serverResponseMessage
