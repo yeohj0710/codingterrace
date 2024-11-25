@@ -9,9 +9,25 @@ export async function GET() {
         { status: 500 }
       );
     }
-    fetch(`${pythonApiUrl}/wake-up`, { method: "GET" })
-      .then(() => console.log("서버 깨우기 요청 전송 완료"))
-      .catch((err) => console.error("서버 깨우기 요청 실패:", err));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, 5000);
+    try {
+      await fetch(`${pythonApiUrl}/wake-up`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      console.log("서버 깨우기 요청 전송 완료");
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        console.log("서버를 5초 동안 깨운 후 요청을 종료하였습니다.");
+      } else {
+        console.error("서버 깨우기 요청 실패:", err);
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
     return NextResponse.json(
       { message: "Wake-up request sent" },
       { status: 200 }
