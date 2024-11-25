@@ -5,7 +5,7 @@ export async function GET() {
     const pythonApiUrl = process.env.PYTHON_API_SERVER_URL;
     if (!pythonApiUrl) {
       return NextResponse.json(
-        { error: "PYTHON_API_SERVER_URL not set" },
+        { error: "PYTHON_API_SERVER_URL 환경 변수가 설정되지 않았습니다." },
         { status: 500 }
       );
     }
@@ -13,12 +13,24 @@ export async function GET() {
     const timeout = setTimeout(() => {
       controller.abort();
     }, 5000);
+    let isRequestSuccessful = false;
+    let serverResponseMessage: string | null = null;
     try {
-      await fetch(`${pythonApiUrl}/wake-up`, {
+      const response = await fetch(`${pythonApiUrl}/`, {
         method: "GET",
-        signal: controller.signal,
+        headers: { "Cache-Control": "no-cache" },
       });
-      console.log("서버 깨우기 요청 전송 완료");
+      if (response.ok) {
+        isRequestSuccessful = true;
+        const responseData = await response.json();
+        serverResponseMessage = responseData.message || null;
+        console.log(
+          "서버가 이미 깨어있어요. 요청에 대한 응답을 성공적으로 받았습니다:",
+          serverResponseMessage
+        );
+      } else {
+        console.error("서버 응답 실패:", response.status, response.statusText);
+      }
     } catch (err: any) {
       if (err.name === "AbortError") {
         console.log("서버를 5초 동안 깨운 후 요청을 종료하였습니다.");
@@ -28,12 +40,21 @@ export async function GET() {
     } finally {
       clearTimeout(timeout);
     }
+    const message = isRequestSuccessful
+      ? "서버가 이미 깨어있어요. 요청에 대한 응답을 성공적으로 받았습니다."
+      : "서버를 5초 동안 깨웠습니다. 곧 일어날 예정이에요.";
     return NextResponse.json(
-      { message: "Wake-up request sent" },
+      {
+        message,
+        response: serverResponseMessage,
+      },
       { status: 200 }
     );
   } catch (error: any) {
     console.error("서버 깨우기 중 에러:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "서버 깨우기 중 오류가 발생했습니다.", detail: error.message },
+      { status: 500 }
+    );
   }
 }
