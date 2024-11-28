@@ -33,7 +33,7 @@ export async function generateMetadata({
         alt: "코딩테라스",
       };
   return {
-    title: post.title,
+    title: post.title + " | 코딩테라스",
     description: stripMarkdown(post.content).slice(0, 150),
     openGraph: {
       title: post.title,

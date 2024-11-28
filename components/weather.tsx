@@ -14,6 +14,8 @@ export default function Weather() {
   const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isWakingUp, setIsWakingUp] = useState(false);
+  const [showSendWeatherButton, setShowSendWeatherButton] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
       if (!("serviceWorker" in navigator)) {
@@ -103,7 +105,7 @@ export default function Weather() {
                 .join(" ") || "";
             const address = addressParts || "";
             const userConfirmed = window.confirm(
-              `현재 위치하고 계신 '${address}'의 날씨를 매일 오전 7시에 보내드릴게요.`
+              `현재 위치하고 계신 '${address}'의 날씨를 알림으로 받아볼 수 있게 해 드릴게요.`
             );
             if (!userConfirmed) {
               window.alert("위치 확인이 취소되었습니다.");
@@ -120,7 +122,11 @@ export default function Weather() {
             );
           } catch (error) {
             console.error("위치 정보를 가져오는 중 에러:", error);
-            window.alert("위치 정보를 가져올 수 없습니다.");
+            window.alert(
+              "위치 권한을 허용해 날씨 알리미 기능을 사용할 수 있게 해 주세요."
+            );
+            setIsProcessing(false);
+            return;
           }
         } else {
           window.alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
@@ -167,7 +173,9 @@ export default function Weather() {
           longitude = position.coords.longitude;
         } catch (error) {
           console.error("위치 정보를 가져오는 중 에러:", error);
-          window.alert("위치 정보를 가져올 수 없습니다.");
+          window.alert(
+            "위치 권한을 허용해 날씨 알리미 기능을 사용할 수 있게 해 주세요."
+          );
           setLoading(false);
           return;
         }
@@ -193,11 +201,28 @@ export default function Weather() {
       const weatherMessage =
         result.message || "날씨 데이터를 가져올 수 없습니다.";
       setData(weatherMessage);
+      setShowSendWeatherButton(true);
     } catch (error: any) {
       setError(error.message);
     } finally {
       setLoading(false);
       setIsWakingUp(false);
+    }
+  };
+  const sendWeatherNotifications = async () => {
+    try {
+      setIsSending(true);
+      const response = await fetch("/api/weather", { method: "GET" });
+      if (!response.ok) {
+        throw new Error("날씨 알림 발송 중 에러가 발생했습니다.");
+      }
+      const result = await response.json();
+      window.alert("날씨 알림이 성공적으로 발송되었습니다.");
+    } catch (error: any) {
+      console.error("날씨 알림 발송 중 에러:", error);
+      window.alert(`날씨 알림 발송 중 에러가 발생했습니다: ${error.message}`);
+    } finally {
+      setIsSending(false);
     }
   };
   return (
@@ -220,15 +245,18 @@ export default function Weather() {
           )}
         </button>
         <span className="text-xs text-red-400 ml-2 hidden sm:block">
-          * 알림을 켜서 내일 날씨를 매일 오전 7시 알림으로 받아보세요.
+          * 알림을 켜서 날씨를 친구들에게 알림으로 받아보세요.
         </span>
         <span className="text-xs text-red-400 block sm:hidden w-full mt-1">
-          * 알림을 켜서 내일 날씨를 매일 오전 7시 알림으로 받아보세요.
+          * 알림을 켜서 날씨를 친구들에게 알림으로 받아보세요.
         </span>
       </div>
       <div className="flex flex-col text-sm text-gray-500 gap-1">
         <span>&quot;오늘 패딩 입을 날씨인가?&quot; 매번 확인하기 귀찮죠?</span>
         <span>코딩테라스가 날씨를 1초 만에 확인하게 도와드릴게요.</span>
+        <span className="text-xs text-blue-400 mt-1">
+          * 서버가 오랜 시간 잠들었을 경우 깨우는데 30초 정도 걸려요.{" "}
+        </span>
       </div>
       {isWakingUp && (
         <div className="flex items-center mt-2 text-sm text-gray-500">
@@ -246,6 +274,34 @@ export default function Weather() {
           {error}
         </div>
       )}
+      {showSendWeatherButton && (
+        <div className="mt-2 px-4 py-3 border border-gray-200 rounded-lg shadow-md bg-gray-50">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-500">
+              다른 날씨 알림 구독자들에게도 각자의 지역 날씨를 알려줄까요?
+            </p>
+            <button
+              onClick={sendWeatherNotifications}
+              className={`px-4 py-1 mt-2 sm:mt-0 sm:ml-4 rounded-md flex items-center justify-center ${
+                isSending
+                  ? "bg-blue-400 text-white cursor-not-allowed opacity-75"
+                  : "bg-blue-400 text-white hover:bg-blue-500"
+              }`}
+              disabled={isSending}
+            >
+              {isSending ? (
+                <>
+                  날씨 알림을 보내는 중
+                  <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                </>
+              ) : (
+                <>날씨 알림 발송하기</>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={fetchData}
         className={`px-4 py-2 mt-3 rounded-md flex items-center justify-center ${

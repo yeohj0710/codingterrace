@@ -12,20 +12,26 @@ import CustomAlert from "./customAlert";
 export default function NotificationPanel() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   useEffect(() => {
     const initializeNotification = async () => {
       if (!("serviceWorker" in navigator)) {
-        console.warn("Service Worker를 지원하지 않는 브라우저입니다.");
+        console.error("Service Worker를 지원하지 않는 브라우저입니다.");
         return;
       }
       try {
-        await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.register("/sw.js");
         await navigator.serviceWorker.ready;
-        await requestNotificationPermission(() => setIsAlertVisible(true));
+        const permissionGranted = await requestNotificationPermission(() => {
+          setIsAlertVisible(true);
+        });
+        if (!permissionGranted) {
+          console.warn("알림 권한이 거부되었습니다.");
+          return;
+        }
         await checkNotificationStatus();
       } catch (error) {
         console.error("Service Worker 초기화 중 에러:", error);
@@ -34,13 +40,37 @@ export default function NotificationPanel() {
     initializeNotification();
   }, []);
   const checkNotificationStatus = async () => {
+    if (!("serviceWorker" in navigator)) {
+      console.error("ServiceWorker를 지원하지 않는 브라우저입니다.");
+      setIsSubscribed(false);
+      return;
+    }
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
-      const subscribed = !!subscription;
-      setIsSubscribed(subscribed);
+      if (!subscription) {
+        setIsSubscribed(false);
+        return;
+      }
+      const response = await fetch("/api/check-subscription", {
+        method: "POST",
+        body: JSON.stringify({
+          endpoint: subscription.endpoint,
+          type: "main",
+          postId: null,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error("구독 상태 확인 중 서버 응답 오류");
+      }
+      const result = await response.json();
+      setIsSubscribed(result.exists);
     } catch (error) {
       console.error("구독 상태 확인 중 에러:", error);
+      setIsSubscribed(false);
     }
   };
   const handleNotificationToggle = async () => {
@@ -50,13 +80,23 @@ export default function NotificationPanel() {
     }
     setIsProcessing(true);
     try {
-      const permission = Notification.permission;
-      if (permission !== "granted") {
-        setIsAlertVisible(true);
+      const permissionGranted = await requestNotificationPermission(() => {
         setIsProcessing(false);
+        setIsSubscribed(false);
+        setIsAlertVisible(true);
+      });
+      if (!permissionGranted) {
+        setIsProcessing(false);
+        setIsAlertVisible(true);
         return;
       }
-      await toggleSubscription("main", () => setIsAlertVisible(true));
+      await toggleSubscription(
+        "main",
+        () => {
+          setIsAlertVisible(true);
+        },
+        null
+      );
       await checkNotificationStatus();
     } catch (error) {
       console.error("알림 on/off 전환 중 에러:", error);
@@ -64,7 +104,6 @@ export default function NotificationPanel() {
       setIsProcessing(false);
     }
   };
-
   const handleNotificationSend = async () => {
     setIsSending(true);
     try {
@@ -73,7 +112,7 @@ export default function NotificationPanel() {
         await registration.update();
       }
       const url = "https://codingterrace.com";
-      await sendNotification(title, message, "main", url);
+      await sendNotification(title, message, "main", url, undefined);
       window.alert("알림이 성공적으로 발송되었습니다!");
     } catch (error) {
       console.error("알림 발송 중 에러:", error);
@@ -96,7 +135,9 @@ export default function NotificationPanel() {
             className="text-gray-500"
             disabled={isProcessing}
           >
-            {isProcessing ? (
+            {isSubscribed === null ? (
+              <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
+            ) : isProcessing ? (
               <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
             ) : isSubscribed ? (
               <BellIcon className="w-6 h-6 text-green-500" />
