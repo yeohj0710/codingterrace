@@ -1,5 +1,5 @@
 export function generatePageMetadata(pageName: string, path: string) {
-  const siteUrl = process.env.SITE_URL || "https://codingterrace.com";
+  const siteUrl = "https://codingterrace.com";
   const fullPath = `${siteUrl}${path}`;
   const description = `코딩테라스 ${pageName} 페이지입니다!`;
   return {
