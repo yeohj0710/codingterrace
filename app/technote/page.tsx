@@ -13,7 +13,7 @@ export default function TechnotePage() {
         category="technote"
         title="기술노트"
         basePath="/technote"
-        postsPerPage={3}
+        postsPerPage={8}
       />
       <OpenExternalInKakao path="/technote" />
     </div>

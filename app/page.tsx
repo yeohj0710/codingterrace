@@ -1,6 +1,7 @@
 import OpenExternalInKakao from "@/components/openExternalInKakao";
 import NotificationPanel from "@/components/notificationPanel";
 import BoardComponent from "@/components/boardComponent";
+import Weather from "@/components/weather";
 
 export default async function Home() {
   return (
@@ -16,8 +17,9 @@ export default async function Home() {
         category="board"
         title="자유게시판"
         basePath="/board"
-        postsPerPage={10}
+        postsPerPage={6}
       />
+      <Weather />
       <NotificationPanel />
       <div className="text-7xl mt-10">🍀</div>
     </div>
