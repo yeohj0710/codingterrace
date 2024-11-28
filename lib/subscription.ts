@@ -15,3 +15,19 @@ export const findSubscription = async (
     },
   });
 };
+
+export const deleteSubscription = async (
+  endpoint: string,
+  type: string,
+  postId: number | null = null,
+  commentId: number | null = null
+) => {
+  return await db.subscription.deleteMany({
+    where: {
+      endpoint,
+      type,
+      postId: postId ?? null,
+      commentId: commentId ?? null,
+    },
+  });
+};
