@@ -63,9 +63,10 @@ model Subscription {
   p256dh     String
   auth       String
   postId     Int?
+  commentId  Int?
   created_at DateTime @default(now())
   latitude   Float?
   longitude  Float?
 
-  @@unique([endpoint, type, postId])
+  @@unique([endpoint, type, postId, commentId])
 }

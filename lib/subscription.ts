@@ -3,51 +3,31 @@ import db from "./db";
 export const findSubscription = async (
   endpoint: string,
   type: string,
-  postId: number | null
+  postId: number | null,
+  commentId: number | null
 ) => {
-  if (postId === null) {
-    return await db.subscription.findFirst({
-      where: {
-        endpoint,
-        type,
-        postId: null,
-      },
-    });
-  } else {
-    return await db.subscription.findUnique({
-      where: {
-        endpoint_type_postId: {
-          endpoint,
-          type,
-          postId,
-        },
-      },
-    });
-  }
+  return await db.subscription.findFirst({
+    where: {
+      endpoint,
+      type,
+      postId: postId ?? null,
+      commentId: commentId ?? null,
+    },
+  });
 };
 
 export const deleteSubscription = async (
   endpoint: string,
   type: string,
-  postId: number | null
+  postId: number | null,
+  commentId: number | null
 ) => {
-  if (postId === null) {
-    return await db.subscription.deleteMany({
-      where: {
-        endpoint,
-        type,
-        postId: null,
-      },
-    });
-  } else {
-    return await db.subscription.delete({
-      where: {
-        endpoint_type_postId: {
-          endpoint,
-          type,
-          postId,
-        },
-      },
-    });
-  }
+  return await db.subscription.deleteMany({
+    where: {
+      endpoint,
+      type,
+      postId: postId ?? null,
+      commentId: commentId ?? null,
+    },
+  });
 };

@@ -57,7 +57,7 @@ export default function BoardPostPage({ params }: { params: { idx: string } }) {
   return (
     <>
       <OpenExternalInKakao path={path} />
-      <PostView idx={params.idx} category="board" basePath="/board" />;
+      <PostView idx={params.idx} category="board" basePath="/board" />
     </>
   );
 }

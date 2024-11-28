@@ -6,7 +6,13 @@ import { getComments, addComment, deleteComment } from "@/lib/comment";
 import { handleImageChange } from "@/lib/handleImageChange";
 import { handlePaste } from "@/lib/handlePaste";
 import Comment from "./comment";
-import { sendNotificationToPostAuthor } from "@/lib/notification";
+import {
+  saveSubscription,
+  sendNotificationToPostAuthor,
+  urlBase64ToUint8Array,
+} from "@/lib/notification";
+import CommentTree from "./commentTree";
+import { stripMarkdown } from "@/lib/utils";
 
 interface CommentSectionProps {
   postIdx: number;
@@ -83,14 +89,47 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
       formData.append("nickname", nickname);
       formData.append("password", password);
     }
-    await addComment(formData);
+    const newComment = await addComment(formData);
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          const convertedVapidKey = urlBase64ToUint8Array(
+            process.env.NEXT_PUBLIC_VAPID_KEY as string
+          );
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedVapidKey,
+          });
+        }
+        const subscriptionData = {
+          ...subscription.toJSON(),
+          type: "commentAuthor",
+          postId: null,
+          commentId: newComment.idx,
+        };
+        await saveSubscription(subscriptionData);
+        console.log(
+          "댓글에 대한 subscription이 등록되었습니다:",
+          subscriptionData
+        );
+      } else {
+        console.warn("알림 권한이 필요합니다.");
+      }
+    }
+    setContent("");
+    setIsSubmitting(false);
+    await refreshComments();
     try {
       const notificationTitle = "내 글에 댓글이 달렸어요.";
       const maxLength = 50;
+      const strippedContent = stripMarkdown(content);
       const truncatedContent =
-        content.length > maxLength
-          ? content.slice(0, maxLength) + "..."
-          : content;
+        strippedContent.length > maxLength
+          ? strippedContent.slice(0, maxLength) + "..."
+          : strippedContent;
       const notificationMessage = truncatedContent;
       const postUrl = window.location.href;
       await sendNotificationToPostAuthor(
@@ -147,20 +186,23 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           ))}
         </div>
       ) : comments.length > 0 ? (
-        comments.map((comment) => (
-          <Comment
-            key={comment.idx}
-            comment={comment}
-            handleDelete={handleDelete}
-            refreshComments={refreshComments}
-          />
-        ))
+        comments
+          .filter((comment) => !comment.parentIdx)
+          .map((comment) => (
+            <CommentTree
+              key={comment.idx}
+              comment={comment}
+              comments={comments}
+              handleDelete={handleDelete}
+              refreshComments={refreshComments}
+            />
+          ))
       ) : (
         <p className="text-gray-400 text-center mt-10 mb-16">
           댓글이 없습니다. 첫 번째 댓글을 남겨보세요!
         </p>
       )}
-      <form onSubmit={handleSubmit} className="mt-3 mb-6">
+      <form onSubmit={handleSubmit} className="mt-2 mb-6">
         {!user && (
           <div className="flex gap-4 mb-2">
             <input

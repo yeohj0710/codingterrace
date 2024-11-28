@@ -106,6 +106,7 @@ const saveSubscriptionToServer = async (
   subscription: PushSubscription,
   type: string,
   postId?: number | null,
+  commentId?: number | null,
   latitude?: number | null,
   longitude?: number | null
 ) => {
@@ -128,6 +129,7 @@ const saveSubscriptionToServer = async (
         },
         type: type,
         postId: postId || null,
+        commentId: commentId || null,
         latitude: latitude || null,
         longitude: longitude || null,
       }),
@@ -171,7 +173,7 @@ export const sendNotification = async (
   }
 };
 
-const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+export const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
@@ -192,6 +194,26 @@ export async function sendNotificationToPostAuthor(
     method: "POST",
     body: JSON.stringify({
       postId,
+      title,
+      message,
+      url,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function sendNotificationToCommentAuthor(
+  commentId: number,
+  title: string,
+  message: string,
+  url: string
+) {
+  await fetch("/api/notify-comment-author", {
+    method: "POST",
+    body: JSON.stringify({
+      commentId,
       title,
       message,
       url,

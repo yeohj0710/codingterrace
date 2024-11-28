@@ -21,11 +21,13 @@ export async function POST(request: Request) {
       );
     }
     const { endpoint, keys, type, postId, latitude, longitude } = subscription;
+    const commentId = subscription.commentId || null;
     const existingSubscription = await db.subscription.findFirst({
       where: {
         endpoint: endpoint,
         type: type,
         postId: postId || null,
+        commentId: commentId || null,
       },
     });
     if (existingSubscription) {
@@ -46,6 +48,7 @@ export async function POST(request: Request) {
           auth: keys.auth,
           type: type ?? "main",
           postId: postId || null,
+          commentId: commentId || null,
           created_at: new Date(),
           latitude: latitude || null,
           longitude: longitude || null,

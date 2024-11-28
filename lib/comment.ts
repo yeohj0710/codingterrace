@@ -7,14 +7,13 @@ import { formatIp } from "@/lib/utils";
 
 export async function getComments(postIdx: number) {
   const comments = await db.comment.findMany({
-    where: { postIdx, parentIdx: null },
+    where: { postIdx },
     include: {
       user: true,
-      replies: {
+      parent: {
         include: {
           user: true,
         },
-        orderBy: { created_at: "asc" },
       },
     },
     orderBy: { created_at: "asc" },
@@ -46,7 +45,8 @@ export async function addComment(formData: FormData) {
     commentData.password = password || "";
     commentData.ip = formattedIp;
   }
-  await db.comment.create({ data: commentData });
+  const newComment = await db.comment.create({ data: commentData });
+  return newComment;
 }
 
 export async function deleteComment(commentIdx: number, password?: string) {
