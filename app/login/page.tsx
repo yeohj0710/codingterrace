@@ -5,6 +5,11 @@ import FormButton from "@/components/button";
 import { useFormState } from "react-dom";
 import { login } from "./actions";
 import Link from "next/link";
+import { generatePageMetadata } from "@/lib/metadata";
+
+export async function generateMetadata() {
+  return generatePageMetadata("로그인", "/login");
+}
 
 export default function Login() {
   const [state, action] = useFormState(login, null);

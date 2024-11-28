@@ -10,6 +10,7 @@ import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
 import remarkBreaks from "remark-breaks";
+import rehypeRaw from "rehype-raw";
 import "highlight.js/styles/atom-one-dark.css";
 import CommentSection from "./commentSection";
 
@@ -119,12 +120,16 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
           <div className="prose max-w-none">
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkBreaks]}
-              rehypePlugins={[[rehypeSanitize, customSchema], rehypeHighlight]}
+              rehypePlugins={[
+                rehypeRaw,
+                [rehypeSanitize, customSchema],
+                rehypeHighlight,
+              ]}
               components={{
                 img: ({ node, ...props }) => (
                   <img
                     {...props}
-                    className="w-full cursor-pointer"
+                    className="max-w-full h-auto mx-auto cursor-pointer"
                     alt={props.alt}
                     onClick={() => handleImageClick(props.src!)}
                   />

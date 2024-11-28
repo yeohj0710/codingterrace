@@ -59,7 +59,7 @@ export default function TechnotePostPage({
 }) {
   return (
     <>
-      <OpenExternalInKakao />
+      <OpenExternalInKakao path={`/technote/${params.idx}`} />
       <PostView idx={params.idx} category="technote" basePath="/technote" />
     </>
   );

@@ -29,10 +29,15 @@ export const customSchema: Schema = {
     "tr",
     "th",
     "td",
+    "span",
+    "font",
   ],
   attributes: {
     ...defaultSchema.attributes,
+    "*": ["className", "style", "color"],
     a: ["href", "name", "target", "rel"],
     img: ["src", "alt", "title", "width", "height", "className"],
   },
+  clobberPrefix: "",
+  allowComments: true,
 };

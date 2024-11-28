@@ -5,6 +5,11 @@ import FormInput from "@/components/input";
 import FormButton from "@/components/button";
 import { useFormState } from "react-dom";
 import { join } from "./actions";
+import { generatePageMetadata } from "@/lib/metadata";
+
+export async function generateMetadata() {
+  return generatePageMetadata("회원가입", "/join");
+}
 
 export default function Join() {
   const [state, action] = useFormState(join, null);

@@ -1,4 +1,10 @@
 import BoardComponent from "@/components/boardComponent";
+import OpenExternalInKakao from "@/components/openExternalInKakao";
+import { generatePageMetadata } from "@/lib/metadata";
+
+export async function generateMetadata() {
+  return generatePageMetadata("기술노트", "/technote");
+}
 
 export default function TechnotePage() {
   return (
@@ -9,6 +15,7 @@ export default function TechnotePage() {
         basePath="/technote"
         postsPerPage={3}
       />
+      <OpenExternalInKakao path="/technote" />
     </div>
   );
 }

@@ -53,9 +53,10 @@ export async function generateMetadata({
 }
 
 export default function BoardPostPage({ params }: { params: { idx: string } }) {
+  const path = `/board/${params.idx}`;
   return (
     <>
-      <OpenExternalInKakao />
+      <OpenExternalInKakao path={path} />
       <PostView idx={params.idx} category="board" basePath="/board" />;
     </>
   );

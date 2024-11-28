@@ -1,5 +1,10 @@
 import OpenExternalInKakao from "@/components/openExternalInKakao";
 import Weather from "@/components/weather";
+import { generatePageMetadata } from "@/lib/metadata";
+
+export async function generateMetadata() {
+  return generatePageMetadata("날씨 알리미", "/weather");
+}
 
 export default function Python() {
   return (
@@ -11,7 +16,7 @@ export default function Python() {
           있어요.
         </span>
       </div>
-      <OpenExternalInKakao />
+      <OpenExternalInKakao path="/weather" />
       <Weather />
     </div>
   );

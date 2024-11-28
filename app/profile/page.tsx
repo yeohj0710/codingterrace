@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import db from "@/lib/db";
 import ProfileForm from "@/components/profileForm";
+import { generatePageMetadata } from "@/lib/metadata";
+
+export async function generateMetadata() {
+  return generatePageMetadata("내 프로필", "/profile");
+}
 
 export default async function ProfilePage() {
   const user = await getUser();

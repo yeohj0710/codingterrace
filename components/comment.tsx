@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
 import remarkBreaks from "remark-breaks";
+import rehypeRaw from "rehype-raw";
 import { getIsOwner } from "@/lib/auth";
 import { customSchema } from "@/lib/customSchema";
 import { handleImageChange } from "@/lib/handleImageChange";
@@ -28,6 +29,7 @@ export default function Comment({
   const [editedPassword, setEditedPassword] = useState(comment.password || "");
   const [editedContent, setEditedContent] = useState(comment.content);
   const [isUploadingImages, setIsUploadingImages] = useState<boolean>(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const checkOwnership = async () => {
@@ -100,6 +102,9 @@ export default function Comment({
     } catch (error: any) {
       alert(error.message || "댓글 수정에 실패했습니다.");
     }
+  };
+  const handleImageClick = (src: string) => {
+    setSelectedImage(src);
   };
   return (
     <div className="border-b border-gray-300 py-2 mb-2 last:border-b-0">
@@ -213,31 +218,53 @@ export default function Comment({
                 </div>
               </div>
             ) : (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                rehypePlugins={[
-                  [rehypeSanitize, customSchema],
-                  rehypeHighlight,
-                ]}
-                components={{
-                  img: ({ node, ...props }) => (
+              <>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                  rehypePlugins={[
+                    rehypeRaw,
+                    [rehypeSanitize, customSchema],
+                    rehypeHighlight,
+                  ]}
+                  components={{
+                    img: ({ node, ...props }) => (
+                      <img
+                        {...props}
+                        className="mr-4 mb-2 cursor-pointer"
+                        style={{
+                          maxHeight: "200px",
+                          maxWidth: "100%",
+                          height: "auto",
+                          display: "block",
+                        }}
+                        alt={props.alt}
+                        onClick={() => handleImageClick(props.src!)} // 이미지 클릭 이벤트 추가
+                      />
+                    ),
+                  }}
+                  className="break-all"
+                >
+                  {comment.content}
+                </ReactMarkdown>
+                {selectedImage && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+                    onClick={() => setSelectedImage(null)}
+                  >
+                    <button
+                      className="absolute top-5 right-5 text-white text-3xl z-50"
+                      onClick={() => setSelectedImage(null)}
+                    >
+                      &times;
+                    </button>
                     <img
-                      {...props}
-                      className="mr-4 mb-2"
-                      style={{
-                        maxHeight: "200px",
-                        maxWidth: "100%",
-                        height: "auto",
-                        display: "block",
-                      }}
-                      alt={props.alt}
+                      src={selectedImage}
+                      alt="Modal Image"
+                      className="max-h-full max-w-full"
                     />
-                  ),
-                }}
-                className="break-all"
-              >
-                {comment.content}
-              </ReactMarkdown>
+                  </div>
+                )}
+              </>
             )}
           </div>
           <div className="flex justify-end mt-2">

@@ -185,7 +185,9 @@ export default function Weather() {
       );
       clearTimeout(wakeUpTimeout);
       if (!response.ok) {
-        throw new Error("날씨 데이터를 가져오는데 실패했습니다.");
+        throw new Error(
+          "날씨 서버를 깨우고 있어요. 서버가 일어날 때까지 여러 번 다시 시도해 주세요."
+        );
       }
       const result = await response.json();
       const weatherMessage =
@@ -230,7 +232,7 @@ export default function Weather() {
       </div>
       {isWakingUp && (
         <div className="flex items-center mt-2 text-sm text-gray-500">
-          Python API 서버를 깨우는 중입니다...
+          Python API 서버를 깨우는 중...
           <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-gray-500 rounded-full animate-spin"></div>
         </div>
       )}
@@ -240,7 +242,7 @@ export default function Weather() {
         </div>
       )}
       {error && (
-        <div className="mt-2 p-3 bg-red-100 text-red-800 rounded-md">
+        <div className="mt-2 p-3 bg-green-100 text-green-800 rounded-md">
           {error}
         </div>
       )}
