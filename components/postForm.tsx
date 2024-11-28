@@ -131,7 +131,7 @@ export default function PostForm({
             ? strippedContent.slice(0, maxLength) + "..."
             : strippedContent;
         const notificationMessage = `${title}\n${truncatedContent}`;
-        const postUrl = `${basePath}`;
+        const postUrl = `https://codingterrace.com/board/${postId ?? idx}`;
         await sendNotification(
           notificationTitle,
           notificationMessage,

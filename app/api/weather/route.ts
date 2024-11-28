@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
           const payload = JSON.stringify({
             title: weatherTitle,
             message: weatherMessage,
-            url: baseUrl + "/python",
+            url: baseUrl + "/weather",
           });
           await webpush.sendNotification(pushSubscription, payload);
         } catch (error: any) {
