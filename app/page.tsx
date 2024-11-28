@@ -10,7 +10,7 @@ export default async function Home() {
         category="technote"
         title="기술노트"
         basePath="/technote"
-        postsPerPage={3}
+        postsPerPage={1}
       />
       <BoardComponent
         category="board"

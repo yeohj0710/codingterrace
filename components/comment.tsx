@@ -253,6 +253,11 @@ export default function Comment({
                 <span className="font-bold">
                   {comment.user?.nickname ?? comment.nickname ?? "익명"}
                 </span>
+                {!comment.user && comment.ip && (
+                  <span className="text-gray-400 ml-2 text-xs">
+                    ({comment.ip})
+                  </span>
+                )}
                 {comment.parent && (
                   <span className="hidden sm:block text-xs text-gray-500 ml-2">
                     @
@@ -260,11 +265,6 @@ export default function Comment({
                       comment.parent.nickname ??
                       "익명"}{" "}
                     님에게
-                  </span>
-                )}
-                {!comment.user && comment.ip && (
-                  <span className="text-gray-400 ml-2 text-xs">
-                    ({comment.ip})
                   </span>
                 )}
               </div>
