@@ -28,8 +28,9 @@ export default function SearchResults({ query }: SearchResultsProps) {
       </div>
       <p className="text-sm text-gray-500 mb-5 ml-1">
         <span className="sm:inline hidden">제목 또는 내용에 </span>
-        <span className="text-black font-bold">{query}</span>를 포함하는 게시글{" "}
-        <span className="text-black font-bold">{postCount}</span>개를 찾았어요.
+        <span className="text-black font-bold">{query}</span> 키워드를 포함하는
+        게시글 <span className="text-black font-bold">{postCount}</span>개를
+        찾았어요.
       </p>
       <PostList
         query={query}

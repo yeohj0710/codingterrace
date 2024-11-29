@@ -8,6 +8,10 @@ import { usePathname } from "next/navigation";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 
+export function menuItemClasses(additionalClasses = "") {
+  return `relative transition-transform duration-200 ease-in-out hover:scale-105 hover:text-green-600 ${additionalClasses}`;
+}
+
 export default function TopBar() {
   const [user, setUser] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -43,7 +47,7 @@ export default function TopBar() {
         <div className="flex items-center gap-6">
           <Link
             href="/"
-            className="text-lg font-bold flex flex-row gap-2 whitespace-nowrap overflow-hidden text-ellipsis"
+            className={menuItemClasses("text-lg font-bold flex flex-row gap-2")}
           >
             🍀 코딩테라스
           </Link>
@@ -51,9 +55,9 @@ export default function TopBar() {
             <MenuLinks />
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <button
-            className="text-gray-700 hover:text-green-500 transition"
+            className={menuItemClasses("text-gray-700")}
             onClick={() => setIsSearchOpen(true)}
             aria-label="Search"
           >
@@ -63,7 +67,7 @@ export default function TopBar() {
             <UserLink user={user} />
           </div>
           <button
-            className="text-xl block sm:hidden"
+            className={menuItemClasses("text-xl block sm:hidden")}
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
           >
             ☰
@@ -121,11 +125,11 @@ export default function TopBar() {
                     handleSearchSubmit();
                   }
                 }}
-                className="w-full text-sm pl-10 pr-20 py-2 ring-1 ring-gray-300 focus:ring-2 focus:ring-green-600 focus:ring-offset-0 outline-none rounded-lg"
+                className="w-full text-sm pl-10 pr-20 py-2.5 ring-1 ring-gray-300 focus:ring-2 focus:ring-green-600 focus:ring-offset-0 outline-none rounded-lg"
               />
               <button
                 onClick={handleSearchSubmit}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-green-400 text-white px-3 py-0.5 rounded-lg hover:bg-green-500 transition"
+                className="absolute text-sm right-3 top-1/2 transform -translate-y-1/2 bg-green-400 text-white px-3 py-1 rounded-lg hover:bg-green-500 transition"
               >
                 검색
               </button>
