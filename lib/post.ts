@@ -175,3 +175,57 @@ export async function deletePost(idx: number) {
     console.error("게시글 삭제에 실패했습니다:", error);
   }
 }
+
+export async function searchPosts(
+  query: string,
+  page: number = 1,
+  pageSize: number = 10
+) {
+  const skip = (page - 1) * pageSize;
+  const posts = await db.post.findMany({
+    where: {
+      OR: [
+        { title: { contains: query, mode: "insensitive" } },
+        { content: { contains: query, mode: "insensitive" } },
+      ],
+    },
+    select: {
+      idx: true,
+      user: true,
+      nickname: true,
+      ip: true,
+      category: true,
+      title: true,
+      content: true,
+      created_at: true,
+      _count: {
+        select: { comment: true },
+      },
+    },
+    orderBy: {
+      created_at: "desc",
+    },
+    skip,
+    take: pageSize,
+  });
+  const totalPosts = await db.post.count({
+    where: {
+      OR: [
+        { title: { contains: query, mode: "insensitive" } },
+        { content: { contains: query, mode: "insensitive" } },
+      ],
+    },
+  });
+  const processedPosts = posts.map((post) => {
+    if (post.user) {
+      return post;
+    } else {
+      return {
+        ...post,
+        nickname: post.nickname ?? "",
+        ip: post.ip ?? "",
+      };
+    }
+  });
+  return { posts: processedPosts, totalPosts };
+}

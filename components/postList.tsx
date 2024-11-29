@@ -6,47 +6,108 @@ import PostPagination from "@/components/postPagination";
 import removeMarkdown from "remove-markdown";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ko } from "date-fns/locale";
-import { getPosts } from "@/lib/post";
+import { getPosts, searchPosts } from "@/lib/post";
 import { ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
 import { postCache } from "@/lib/cache";
 
+interface Post {
+  idx: number;
+  category: string;
+  title: string;
+  nickname: string | null;
+  ip: string | null;
+  content: string;
+  created_at: Date;
+  _count: {
+    comment: number;
+  };
+  user: {
+    idx: number;
+    id: string;
+    password: string;
+    nickname: string;
+    avatar: string | null;
+    created_at: Date;
+    updated_at: Date;
+  } | null;
+}
+
+interface PostListProps {
+  category?: string;
+  query?: string;
+  basePath?: string;
+  postsPerPage: number;
+  refreshKey: number;
+  setIsRefreshing: (isRefreshing: boolean) => void;
+  onPostCountChange?: (count: number) => void;
+}
+
 export default function PostList({
   category,
+  query,
   basePath,
   postsPerPage,
   refreshKey,
   setIsRefreshing,
+  onPostCountChange,
 }: PostListProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    const cacheKey = `${category}_${currentPage}`;
     const fetchData = async () => {
       setLoading(true);
       setIsRefreshing(true);
-      const { posts, totalPosts } = await getPosts(
-        category,
-        currentPage,
-        postsPerPage
-      );
-      const calculatedTotalPages = Math.ceil(totalPosts / postsPerPage);
-      postCache[cacheKey] = { posts, totalPages: calculatedTotalPages };
-      setPosts(posts);
-      setTotalPages(calculatedTotalPages);
+      let result;
+      if (query) {
+        const cacheKey = `search_${query}_${currentPage}`;
+        if (postCache[cacheKey] && refreshKey === 0) {
+          setPosts(postCache[cacheKey].posts);
+          setTotalPages(postCache[cacheKey].totalPages);
+          setLoading(false);
+          setIsRefreshing(false);
+          return;
+        }
+        result = await searchPosts(query, currentPage, postsPerPage);
+        postCache[cacheKey] = {
+          posts: result.posts,
+          totalPages: Math.ceil(result.totalPosts / postsPerPage),
+        };
+      } else if (category) {
+        const cacheKey = `${category}_${currentPage}`;
+        if (postCache[cacheKey] && refreshKey === 0) {
+          setPosts(postCache[cacheKey].posts);
+          setTotalPages(postCache[cacheKey].totalPages);
+          setLoading(false);
+          setIsRefreshing(false);
+          return;
+        }
+        result = await getPosts(category, currentPage, postsPerPage);
+        postCache[cacheKey] = {
+          posts: result.posts,
+          totalPages: Math.ceil(result.totalPosts / postsPerPage),
+        };
+      } else {
+        setPosts([]);
+        setTotalPages(0);
+        setLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
+      setPosts(result.posts);
+      setTotalPages(Math.ceil(result.totalPosts / postsPerPage));
+      if (onPostCountChange) {
+        onPostCountChange(result.totalPosts);
+      }
       setLoading(false);
       setIsRefreshing(false);
     };
-    if (postCache[cacheKey] && refreshKey === 0) {
-      setPosts(postCache[cacheKey].posts);
-      setTotalPages(postCache[cacheKey].totalPages);
-      setLoading(false);
-    } else {
-      fetchData();
-    }
-  }, [category, currentPage, refreshKey]);
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+    fetchData();
+  }, [category, query, currentPage, refreshKey, postsPerPage, setIsRefreshing]);
+  const paginate = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
   function extractFirstImageUrl(content: string): string | null {
     const imageRegex = /!\[.*?\]\((.*?)\)/;
     const match = imageRegex.exec(content);
@@ -72,7 +133,7 @@ export default function PostList({
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center text-gray-500 py-10">
-          게시글이 없습니다.
+          {query ? "검색 결과가 없습니다." : "게시글이 없습니다."}
         </div>
       ) : (
         posts.map((post: Post) => {
@@ -80,15 +141,18 @@ export default function PostList({
           const plainTextContent = removeMarkdown(
             post.content.replace(/!\[.*?\]\(.*?\)/g, "")
           );
+          const postLink = query
+            ? `/${post.category}/${post.idx}`
+            : `${basePath}/${post.idx}`;
           return (
             <Link
               key={post.idx}
-              href={`${basePath}/${post.idx}`}
+              href={postLink}
               className="block mb-4 p-4 bg-gray-100 rounded hover:bg-gray-200"
             >
               <div className="flex">
                 <div className="flex flex-col flex-1 min-h-24">
-                  <h2 className="text-lg font-semibold line-clamp-1 break-al">
+                  <h2 className="text-lg font-semibold line-clamp-1 break-all">
                     {post.title}
                   </h2>
                   <p className="text-sm text-gray-600 mt-2 line-clamp-1 break-all">
@@ -142,11 +206,13 @@ export default function PostList({
           );
         })
       )}
-      <PostPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        paginate={paginate}
-      />
+      {totalPages > 1 && (
+        <PostPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          paginate={paginate}
+        />
+      )}
     </div>
   );
 }
@@ -184,34 +250,4 @@ function TruncatedNickname({
       {nickname}
     </span>
   );
-}
-
-interface Post {
-  title: string;
-  idx: number;
-  category: string;
-  nickname: string | null;
-  ip: string | null;
-  content: string;
-  created_at: Date;
-  _count: {
-    comment: number;
-  };
-  user: {
-    idx: number;
-    id: string;
-    password: string;
-    nickname: string;
-    avatar: string | null;
-    created_at: Date;
-    updated_at: Date;
-  } | null;
-}
-
-interface PostListProps {
-  category: string;
-  basePath: string;
-  postsPerPage: number;
-  refreshKey: number;
-  setIsRefreshing: (isRefreshing: boolean) => void;
 }

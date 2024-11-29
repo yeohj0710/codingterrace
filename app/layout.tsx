@@ -39,6 +39,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <TopBar />
         <main className="pt-14">{children}</main>
+        <div className="text-7xl mt-10 mb-10 text-center">🍀</div>
       </body>
     </html>
   );

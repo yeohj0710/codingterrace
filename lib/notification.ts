@@ -68,6 +68,7 @@ export const toggleSubscription = async (
           subscription,
           type,
           null,
+          null,
           latitude,
           longitude
         );
@@ -84,6 +85,7 @@ export const toggleSubscription = async (
       await saveSubscriptionToServer(
         newSubscription,
         type,
+        null,
         null,
         latitude,
         longitude

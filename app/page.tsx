@@ -21,7 +21,6 @@ export default async function Home() {
       />
       <Weather />
       <NotificationPanel />
-      <div className="text-7xl mt-10">🍀</div>
     </div>
   );
 }

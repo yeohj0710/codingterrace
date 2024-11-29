@@ -6,6 +6,7 @@ import { MenuLinks, UserLink } from "./menuLinks";
 import { getUser } from "@/lib/auth";
 import { usePathname } from "next/navigation";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import { useRouter } from "next/navigation";
 
 export default function TopBar() {
   const [user, setUser] = useState(null);
@@ -13,6 +14,7 @@ export default function TopBar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const pathname = usePathname();
+  const router = useRouter();
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -28,7 +30,12 @@ export default function TopBar() {
     setIsDrawerOpen(false);
   };
   const handleSearchSubmit = () => {
-    console.log(searchQuery, "가 검색되었습니다.");
+    if (searchQuery.trim() === "") {
+      alert("검색어를 입력해주세요.");
+      return;
+    }
+    router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
+    setIsSearchOpen(false);
   };
   return (
     <>
