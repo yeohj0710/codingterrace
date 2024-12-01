@@ -10,7 +10,7 @@ export async function GET() {
       );
     }
 
-    const response = await fetch(`${pythonApiUrl}/hello`, { method: "GET" }); // 루트 URL 사용
+    const response = await fetch(`${pythonApiUrl}/hello`, { method: "GET" });
     if (!response.ok) {
       throw new Error("Failed to fetch data from Python API");
     }
