@@ -10,13 +10,14 @@ import { customSchema } from "@/lib/customSchema";
 import { handleImageChange } from "@/lib/handleImageChange";
 import { handlePaste } from "@/lib/handlePaste";
 import { addComment, updateComment } from "@/lib/comment";
-import "highlight.js/styles/atom-one-dark.css";
 import {
   saveSubscription,
   sendNotificationToCommentAuthor,
   urlBase64ToUint8Array,
 } from "@/lib/notification";
 import { stripMarkdown } from "@/lib/utils";
+import { remarkYoutubeEmbed } from "@/lib/remarkYoutubeEmbed";
+import "highlight.js/styles/atom-one-dark.css";
 
 interface CommentProps {
   comment: any;
@@ -358,7 +359,11 @@ export default function Comment({
               ) : (
                 <>
                   <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    remarkPlugins={[
+                      remarkGfm,
+                      remarkBreaks,
+                      remarkYoutubeEmbed,
+                    ]}
                     rehypePlugins={[
                       rehypeRaw,
                       [rehypeSanitize, customSchema],
@@ -368,7 +373,7 @@ export default function Comment({
                       img: ({ node, ...props }) => (
                         <img
                           {...props}
-                          className="mr-4 mb-2 cursor-pointer"
+                          className="mr-4  mt-4 -mb-2 cursor-pointer"
                           style={{
                             maxHeight: "200px",
                             maxWidth: "100%",
@@ -379,11 +384,19 @@ export default function Comment({
                           onClick={() => handleImageClick(props.src!)}
                         />
                       ),
+                      iframe: ({ node, ...props }) => (
+                        <iframe
+                          {...props}
+                          className="block mt-4 -mb-2"
+                          title={props.title}
+                        />
+                      ),
                     }}
                     className="break-all [&>*]:mb-0 text-base"
                   >
                     {comment.content}
                   </ReactMarkdown>
+
                   {selectedImage && (
                     <div
                       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"

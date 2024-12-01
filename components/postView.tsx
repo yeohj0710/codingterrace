@@ -5,14 +5,15 @@ import { categoryToName } from "@/lib/utils";
 import { customSchema } from "@/lib/customSchema";
 import { getIsOwner } from "@/lib/auth";
 import { deletePost, getPost } from "@/lib/post";
+import { remarkYoutubeEmbed } from "@/lib/remarkYoutubeEmbed";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
 import remarkBreaks from "remark-breaks";
 import rehypeRaw from "rehype-raw";
-import "highlight.js/styles/atom-one-dark.css";
 import CommentSection from "./commentSection";
+import "highlight.js/styles/atom-one-dark.css";
 
 interface PostViewProps {
   idx: string;
@@ -119,7 +120,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
           <hr className="border-gray-300 my-4" />
           <div className="prose max-w-none">
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkBreaks]}
+              remarkPlugins={[remarkGfm, remarkBreaks, remarkYoutubeEmbed]}
               rehypePlugins={[
                 rehypeRaw,
                 [rehypeSanitize, customSchema],
@@ -129,7 +130,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                 img: ({ node, ...props }) => (
                   <img
                     {...props}
-                    className="max-w-full h-auto mx-auto cursor-pointer"
+                    className="max-w-full h-auto mx-auto cursor-pointer mt-4 -mb-2"
                     alt={props.alt}
                     onClick={() => handleImageClick(props.src!)}
                   />
@@ -137,7 +138,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                 iframe: ({ node, ...props }) => (
                   <iframe
                     {...props}
-                    className="mx-auto block mb-8"
+                    className="mx-auto block mt-4 -mb-2"
                     title={props.title}
                   />
                 ),
