@@ -134,6 +134,13 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                     onClick={() => handleImageClick(props.src!)}
                   />
                 ),
+                iframe: ({ node, ...props }) => (
+                  <iframe
+                    {...props}
+                    className="mx-auto block mb-8"
+                    title={props.title}
+                  />
+                ),
               }}
               className="break-all"
             >
