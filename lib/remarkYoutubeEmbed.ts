@@ -9,30 +9,42 @@ export function remarkYoutubeEmbed() {
     visit(tree, "link", (node, index, parent) => {
       const url = node.url;
       const youtubeRegex =
-        /^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\/.+$/;
-      if (youtubeRegex.test(url)) {
-        const videoIdMatch = url.match(
-          /(?:youtube\.com\/.*(?:\?|&)v=|youtu\.be\/|m\.youtube\.com\/.*(?:\?|&)v=)([^"&?\/\s]{11})/
-        );
-        const videoId = videoIdMatch ? videoIdMatch[1] : null;
-        if (videoId && typeof index === "number") {
-          if (isMobileChrome()) {
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-            parent.children[index] = {
-              type: "html",
-              value: `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener noreferrer">
-                        <img src="${thumbnailUrl}" alt="YouTube Thumbnail" style="width:100%; max-width:640px; cursor:pointer; border: 1px solid #ddd; border-radius: 4px;" />
-                      </a>`,
-            };
-          } else {
-            const iframe = {
-              type: "html",
-              value: `<iframe width="95%" height="${
-                95 * 0.5625
-              }%" src="https://www.youtube.com/embed/${videoId}" frameborder="0" sandbox="allow-same-origin allow-scripts allow-popups" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="aspect-ratio: 16 / 9;" loading="lazy"></iframe>`,
-            };
-            parent.children[index] = iframe;
-          }
+        /(?:https?:\/\/)?(?:www\.|m\.)?(youtube\.com\/.*(?:\?|&)v=|youtu\.be\/)([^"&?\/\s]{11})/;
+      const videoIdMatch = youtubeRegex.exec(url);
+      if (videoIdMatch && typeof index === "number") {
+        const videoId = videoIdMatch[2];
+        const youtubeLink = `https://www.youtube.com/watch?v=${videoId}`;
+        if (isMobileChrome()) {
+          parent.children[index] = {
+            type: "html",
+            value: `<div style="position: relative; width: 100%; max-width: 640px; aspect-ratio: 16 / 9;">
+                      <iframe 
+                        src="https://www.youtube.com/embed/${videoId}" 
+                        frameborder="0" 
+                        sandbox="allow-same-origin allow-scripts allow-popups" 
+                        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen 
+                        style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;" 
+                      ></iframe>
+                      <a href="${youtubeLink}" target="_blank" rel="noopener noreferrer"
+                         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; z-index: 1;"
+                         title="YouTube로 이동">
+                      </a>
+                    </div>`,
+          };
+        } else {
+          parent.children[index] = {
+            type: "html",
+            value: `<iframe 
+                      src="https://www.youtube.com/embed/${videoId}" 
+                      frameborder="0" 
+                      sandbox="allow-same-origin allow-scripts allow-popups" 
+                      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allowfullscreen 
+                      style="width: 100%; max-width: 640px; aspect-ratio: 16 / 9;" 
+                      loading="lazy">
+                    </iframe>`,
+          };
         }
       }
     });
