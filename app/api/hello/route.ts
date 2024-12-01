@@ -9,12 +9,10 @@ export async function GET() {
         { status: 500 }
       );
     }
-
     const response = await fetch(`${pythonApiUrl}/hello`, { method: "GET" });
     if (!response.ok) {
       throw new Error("Failed to fetch data from Python API");
     }
-
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error: any) {

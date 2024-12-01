@@ -13,8 +13,20 @@ async function fetchPostData(idx: string) {
 
 function extractThumbnailFromContent(content: string): string | null {
   const imageRegex = /!\[[^\]]*\]\((.*?)\)/;
-  const match = imageRegex.exec(content);
-  return match ? match[1] : null;
+  const youtubeRegex =
+    /(?:https?:\/\/)?(?:www\.|m\.)?(youtube\.com\/.*(?:\?|&)v=|youtu\.be\/)([^"&?\/\s]{11})/; // 유튜브 링크
+  const imageMatch = imageRegex.exec(content);
+  const youtubeMatch = youtubeRegex.exec(content);
+  const imageUrl = imageMatch ? imageMatch[1] : null;
+  const youtubeThumbnail = youtubeMatch
+    ? `https://img.youtube.com/vi/${youtubeMatch[2]}/hqdefault.jpg`
+    : null;
+  if (
+    content.indexOf(imageUrl ?? "") < content.indexOf(youtubeThumbnail ?? "")
+  ) {
+    return imageUrl;
+  }
+  return youtubeThumbnail;
 }
 
 export async function generateMetadata({
