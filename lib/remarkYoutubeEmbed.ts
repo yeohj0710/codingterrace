@@ -3,7 +3,10 @@ import { visit } from "unist-util-visit";
 export function remarkYoutubeEmbed() {
   const isMobileChrome = () => {
     const userAgent = navigator.userAgent;
-    return /Mobi|Android/i.test(userAgent) && /Chrome/i.test(userAgent);
+    const isMobile = /Mobi|Android/i.test(userAgent);
+    const isChrome = /Chrome\/[0-9.]+/.test(userAgent);
+    const isExcluded = /SamsungBrowser|OPR|Edg|DuckDuckGo/i.test(userAgent);
+    return isMobile && isChrome && !isExcluded;
   };
   return (tree: any) => {
     visit(tree, "link", (node, index, parent) => {
