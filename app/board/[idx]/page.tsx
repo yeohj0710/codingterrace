@@ -12,21 +12,29 @@ async function fetchPostData(idx: string) {
 }
 
 function extractThumbnailFromContent(content: string): string | null {
-  const imageRegex = /!\[[^\]]*\]\((.*?)\)/;
+  const imageRegex = /!\[[^\]]*\]\((.*?)\)/g;
   const youtubeRegex =
-    /(?:https?:\/\/)?(?:www\.|m\.)?(youtube\.com\/.*(?:\?|&)v=|youtu\.be\/)([^"&?\/\s]{11})/;
-  const imageMatch = imageRegex.exec(content);
-  const youtubeMatch = youtubeRegex.exec(content);
-  const imageUrl = imageMatch ? imageMatch[1] : null;
-  const youtubeThumbnail = youtubeMatch
-    ? `https://img.youtube.com/vi/${youtubeMatch[2]}/hqdefault.jpg`
-    : null;
-  if (imageMatch && youtubeMatch) {
-    return content.indexOf(imageMatch[0]) < content.indexOf(youtubeMatch[0])
-      ? imageUrl
-      : youtubeThumbnail;
+    /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/.*(?:\?|&)v=|youtu\.be\/)([^"&?\/\s]{11})/g;
+  const images: { url: string; index: number }[] = [];
+  const youtubeThumbnails: { url: string; index: number }[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = imageRegex.exec(content)) !== null) {
+    images.push({ url: match[1], index: match.index });
   }
-  return imageUrl || youtubeThumbnail;
+  while ((match = youtubeRegex.exec(content)) !== null) {
+    const thumbnailUrl = `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
+    youtubeThumbnails.push({ url: thumbnailUrl, index: match.index });
+  }
+  const firstImage = images.length > 0 ? images[0] : null;
+  const firstYoutubeThumbnail =
+    youtubeThumbnails.length > 0 ? youtubeThumbnails[0] : null;
+
+  if (firstImage && firstYoutubeThumbnail) {
+    return firstImage.index < firstYoutubeThumbnail.index
+      ? firstImage.url
+      : firstYoutubeThumbnail.url;
+  }
+  return firstImage?.url || firstYoutubeThumbnail?.url || null;
 }
 
 export async function generateMetadata({
