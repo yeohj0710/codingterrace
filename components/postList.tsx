@@ -108,14 +108,38 @@ export default function PostList({
   const paginate = (pageNumber: number) => {
     setCurrentPage(pageNumber);
   };
-  function extractFirstImageUrl(content: string): string | null {
-    const imageRegex = /!\[.*?\]\((.*?)\)/;
-    const match = imageRegex.exec(content);
-    if (match && match[1]) {
-      const imageUrl = match[1];
-      return imageUrl.replace("/public", "/avatar");
+  function extractFirstThumbnail(content: string): string | null {
+    const imageRegex = /!\[.*?\]\((.*?)\)/g;
+    const youtubeRegex =
+      /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:[^\/\n\s]*\/\S+\/|(?:v|e(?:mbed)?)\/?(\S+)|.*[?&]v=([^"&?\/\s]{11}))|youtu\.be\/([^"&?\/\s]{11}))/g;
+    const images: { url: string; index: number }[] = [];
+    const youtubeThumbnails: { url: string; index: number }[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = imageRegex.exec(content)) !== null) {
+      images.push({
+        url: match[1].replace("/public", "/avatar"),
+        index: match.index,
+      });
     }
-    return null;
+    while ((match = youtubeRegex.exec(content)) !== null) {
+      const matchGroups = [match[1], match[2], match[3]].filter(Boolean);
+      const videoId = matchGroups[0];
+      if (videoId) {
+        youtubeThumbnails.push({
+          url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+          index: match.index,
+        });
+      }
+    }
+    const firstImage = images.length > 0 ? images[0] : null;
+    const firstYoutubeThumbnail =
+      youtubeThumbnails.length > 0 ? youtubeThumbnails[0] : null;
+    if (firstImage && firstYoutubeThumbnail) {
+      return firstImage.index < firstYoutubeThumbnail.index
+        ? firstImage.url
+        : firstYoutubeThumbnail.url;
+    }
+    return firstImage?.url || firstYoutubeThumbnail?.url || null;
   }
   return (
     <div className="w-full bg-white">
@@ -137,7 +161,7 @@ export default function PostList({
         </div>
       ) : (
         posts.map((post: Post) => {
-          const imageUrl = extractFirstImageUrl(post.content);
+          const imageUrl = extractFirstThumbnail(post.content);
           const plainTextContent = removeMarkdown(
             post.content.replace(/!\[.*?\]\(.*?\)/g, "")
           );

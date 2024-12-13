@@ -1,5 +1,6 @@
 import OpenExternalInKakao from "@/components/openExternalInKakao";
 import PostView from "@/components/postView";
+import { extractThumbnailFromContent } from "@/lib/metadata";
 import { getPost } from "@/lib/post";
 import { stripMarkdown } from "@/lib/utils";
 
@@ -9,32 +10,6 @@ async function fetchPostData(idx: string) {
     throw new Error("게시글을 찾을 수 없습니다.");
   }
   return post;
-}
-
-function extractThumbnailFromContent(content: string): string | null {
-  const imageRegex = /!\[[^\]]*\]\((.*?)\)/g;
-  const youtubeRegex =
-    /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/.*(?:\?|&)v=|youtu\.be\/)([^"&?\/\s]{11})/g;
-  const images: { url: string; index: number }[] = [];
-  const youtubeThumbnails: { url: string; index: number }[] = [];
-  let match: RegExpExecArray | null;
-  while ((match = imageRegex.exec(content)) !== null) {
-    images.push({ url: match[1], index: match.index });
-  }
-  while ((match = youtubeRegex.exec(content)) !== null) {
-    const thumbnailUrl = `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
-    youtubeThumbnails.push({ url: thumbnailUrl, index: match.index });
-  }
-  const firstImage = images.length > 0 ? images[0] : null;
-  const firstYoutubeThumbnail =
-    youtubeThumbnails.length > 0 ? youtubeThumbnails[0] : null;
-
-  if (firstImage && firstYoutubeThumbnail) {
-    return firstImage.index < firstYoutubeThumbnail.index
-      ? firstImage.url
-      : firstYoutubeThumbnail.url;
-  }
-  return firstImage?.url || firstYoutubeThumbnail?.url || null;
 }
 
 export async function generateMetadata({

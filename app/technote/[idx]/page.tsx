@@ -1,5 +1,6 @@
 import OpenExternalInKakao from "@/components/openExternalInKakao";
 import PostView from "@/components/postView";
+import { extractThumbnailFromContent } from "@/lib/metadata";
 import { getPost } from "@/lib/post";
 import { stripMarkdown } from "@/lib/utils";
 
@@ -9,24 +10,6 @@ async function fetchPostData(idx: string) {
     throw new Error("게시글을 찾을 수 없습니다.");
   }
   return post;
-}
-
-function extractThumbnailFromContent(content: string): string | null {
-  const imageRegex = /!\[[^\]]*\]\((.*?)\)/;
-  const youtubeRegex =
-    /(?:https?:\/\/)?(?:www\.|m\.)?(youtube\.com\/.*(?:\?|&)v=|youtu\.be\/)([^"&?\/\s]{11})/;
-  const imageMatch = imageRegex.exec(content);
-  const youtubeMatch = youtubeRegex.exec(content);
-  const imageUrl = imageMatch ? imageMatch[1] : null;
-  const youtubeThumbnail = youtubeMatch
-    ? `https://img.youtube.com/vi/${youtubeMatch[2]}/hqdefault.jpg`
-    : null;
-  if (imageMatch && youtubeMatch) {
-    return content.indexOf(imageMatch[0]) < content.indexOf(youtubeMatch[0])
-      ? imageUrl
-      : youtubeThumbnail;
-  }
-  return imageUrl || youtubeThumbnail;
 }
 
 export async function generateMetadata({
