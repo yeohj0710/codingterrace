@@ -1,11 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("POSTGRES_PRISMA_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
+  schemas   = ["public"]
 }
 
 model User {
@@ -19,6 +21,8 @@ model User {
 
   post    Post[]
   comment Comment[]
+
+  @@schema("public")
 }
 
 model Post {
@@ -35,6 +39,8 @@ model Post {
 
   userIdx Int?
   comment Comment[]
+
+  @@schema("public")
 }
 
 model Comment {
@@ -54,6 +60,8 @@ model Comment {
   parent    Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
   parentIdx Int?
   replies   Comment[] @relation("CommentToComment")
+
+  @@schema("public")
 }
 
 model Subscription {
@@ -69,4 +77,5 @@ model Subscription {
   longitude  Float?
 
   @@unique([endpoint, type, postId, commentId])
+  @@schema("public")
 }
