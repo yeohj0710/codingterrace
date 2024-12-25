@@ -11,55 +11,52 @@ datasource db {
 }
 
 model User {
-  idx        Int      @id @default(autoincrement())
-  id         String   @unique
+  idx        Int       @id @default(autoincrement())
+  id         String    @unique
   password   String
-  nickname   String   @unique
+  nickname   String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
   avatar     String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  post    Post[]
-  comment Comment[]
+  comment    Comment[]
+  post       Post[]
 
   @@schema("public")
 }
 
 model Post {
-  idx        Int      @id @default(autoincrement())
-  user       User?    @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
+  idx        Int       @id @default(autoincrement())
   category   String
   title      String
-  nickname   String?
-  ip         String?
-  password   String?
   content    String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  userIdx Int?
-  comment Comment[]
+  password   String?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  userIdx    Int?
+  ip         String?
+  nickname   String?
+  comment    Comment[]
+  user       User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
 
   @@schema("public")
 }
 
 model Comment {
-  idx        Int      @id @default(autoincrement())
+  idx        Int       @id @default(autoincrement())
   content    String
   images     String[]
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
   nickname   String?
   ip         String?
   password   String?
-
-  user      User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
-  userIdx   Int?
-  post      Post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
-  postIdx   Int
-  parent    Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
-  parentIdx Int?
-  replies   Comment[] @relation("CommentToComment")
+  userIdx    Int?
+  postIdx    Int
+  parentIdx  Int?
+  parent     Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
+  replies    Comment[] @relation("CommentToComment")
+  post       Post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
+  user       User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -67,15 +64,36 @@ model Comment {
 model Subscription {
   id         Int      @id @default(autoincrement())
   endpoint   String
-  type       String
   p256dh     String
   auth       String
+  type       String
   postId     Int?
-  commentId  Int?
   created_at DateTime @default(now())
   latitude   Float?
   longitude  Float?
+  commentId  Int?
 
   @@unique([endpoint, type, postId, commentId])
+  @@schema("public")
+}
+
+model Category_ {
+  idx      Int        @id @default(autoincrement())
+  name     String?    @unique
+  image    String?
+  Product_ Product_[]
+
+  @@schema("public")
+}
+
+model Product_ {
+  idx         Int       @id @default(autoincrement())
+  name        String?
+  images      String[]
+  description String?
+  price       Int?
+  categoryId  Int
+  Category_   Category_ @relation(fields: [categoryId], references: [idx])
+
   @@schema("public")
 }
