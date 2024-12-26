@@ -8,57 +8,57 @@ datasource db {
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
-model category_ {
+model Category_ {
   idx      Int        @id @default(autoincrement())
   name     String?    @unique
   image    String?
-  products product_[]
+  products Product_[]
 }
 
-model product_ {
+model Product_ {
   idx         Int       @id @default(autoincrement())
   name        String?
   images      String[]
   description String?
   price       Int?
   categoryId  Int
-  category    category_ @relation(fields: [categoryId], references: [idx])
+  category    Category_ @relation(fields: [categoryId], references: [idx])
 }
 
-model comment {
+model Comment {
   idx           Int       @id @default(autoincrement())
   content       String
   images        String[]
   created_at    DateTime  @default(now())
-  updated_at    DateTime
+  updated_at    DateTime  @updatedAt
   nickname      String?
   ip            String?
   password      String?
   userIdx       Int?
   postIdx       Int
   parentIdx     Int?
-  Comment       comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
-  other_Comment comment[] @relation("CommentToComment")
-  post          post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
-  user          user?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
+  Comment       Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
+  other_Comment Comment[] @relation("CommentToComment")
+  post          Post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
+  user          User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
 }
 
-model post {
+model Post {
   idx        Int       @id @default(autoincrement())
   category   String
   title      String
   content    String
   password   String?
   created_at DateTime  @default(now())
-  updated_at DateTime
+  updated_at DateTime  @updatedAt
   userIdx    Int?
   ip         String?
   nickname   String?
-  comment    comment[]
-  user       user?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
+  comment    Comment[]
+  user       User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
 }
 
-model subscription {
+model Subscription {
   id         Int      @id @default(autoincrement())
   endpoint   String
   p256dh     String
@@ -73,14 +73,14 @@ model subscription {
   @@unique([endpoint, type, postId, commentId])
 }
 
-model user {
+model User {
   idx        Int       @id @default(autoincrement())
   id         String    @unique
   password   String
   nickname   String    @unique
   created_at DateTime  @default(now())
-  updated_at DateTime
+  updated_at DateTime  @updatedAt
   avatar     String?
-  comment    comment[]
-  post       post[]
+  comment    Comment[]
+  post       Post[]
 }

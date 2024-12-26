@@ -10,7 +10,7 @@ export async function getComments(postIdx: number) {
     where: { postIdx },
     include: {
       user: true,
-      parent: {
+      Comment: {
         include: {
           user: true,
         },
