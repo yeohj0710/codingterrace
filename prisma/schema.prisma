@@ -1,27 +1,50 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("POSTGRES_PRISMA_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
-  schemas   = ["public"]
 }
 
-model User {
-  idx        Int       @id @default(autoincrement())
-  id         String    @unique
-  password   String
-  nickname   String    @unique
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  avatar     String?
-  comment    Comment[]
-  post       Post[]
+// Wellnessbox
 
-  @@schema("public")
+model Category_ {
+  idx      Int        @id @default(autoincrement())
+  name     String?    @unique
+  image    String?
+  products Product_[]
+}
+
+model Product_ {
+  idx         Int       @id @default(autoincrement())
+  name        String?
+  images      String[]
+  description String?
+  price       Int?
+  categoryId  Int
+  category    Category_ @relation(fields: [categoryId], references: [idx])
+}
+
+// Codingterrace
+
+model Comment {
+  idx           Int       @id @default(autoincrement())
+  content       String
+  images        String[]
+  created_at    DateTime  @default(now())
+  updated_at    DateTime
+  nickname      String?
+  ip            String?
+  password      String?
+  userIdx       Int?
+  postIdx       Int
+  parentIdx     Int?
+  Comment       Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
+  other_Comment Comment[] @relation("CommentToComment")
+  Post          Post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
+  User          User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
 }
 
 model Post {
@@ -31,34 +54,12 @@ model Post {
   content    String
   password   String?
   created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  updated_at DateTime
   userIdx    Int?
   ip         String?
   nickname   String?
-  comment    Comment[]
-  user       User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
-
-  @@schema("public")
-}
-
-model Comment {
-  idx        Int       @id @default(autoincrement())
-  content    String
-  images     String[]
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  nickname   String?
-  ip         String?
-  password   String?
-  userIdx    Int?
-  postIdx    Int
-  parentIdx  Int?
-  parent     Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
-  replies    Comment[] @relation("CommentToComment")
-  post       Post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
-  user       User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
-
-  @@schema("public")
+  Comment    Comment[]
+  User       User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
 }
 
 model Subscription {
@@ -74,26 +75,16 @@ model Subscription {
   commentId  Int?
 
   @@unique([endpoint, type, postId, commentId])
-  @@schema("public")
 }
 
-model Category_ {
-  idx      Int        @id @default(autoincrement())
-  name     String?    @unique
-  image    String?
-  Product_ Product_[]
-
-  @@schema("public")
-}
-
-model Product_ {
-  idx         Int       @id @default(autoincrement())
-  name        String?
-  images      String[]
-  description String?
-  price       Int?
-  categoryId  Int
-  Category_   Category_ @relation(fields: [categoryId], references: [idx])
-
-  @@schema("public")
+model User {
+  idx        Int       @id @default(autoincrement())
+  id         String    @unique
+  password   String
+  nickname   String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime
+  avatar     String?
+  Comment    Comment[]
+  Post       Post[]
 }
