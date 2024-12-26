@@ -8,28 +8,24 @@ datasource db {
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
-// Wellnessbox
-
-model Category_ {
+model category_ {
   idx      Int        @id @default(autoincrement())
   name     String?    @unique
   image    String?
-  products Product_[]
+  products product_[]
 }
 
-model Product_ {
+model product_ {
   idx         Int       @id @default(autoincrement())
   name        String?
   images      String[]
   description String?
   price       Int?
   categoryId  Int
-  category    Category_ @relation(fields: [categoryId], references: [idx])
+  category    category_ @relation(fields: [categoryId], references: [idx])
 }
 
-// Codingterrace
-
-model Comment {
+model comment {
   idx           Int       @id @default(autoincrement())
   content       String
   images        String[]
@@ -41,13 +37,13 @@ model Comment {
   userIdx       Int?
   postIdx       Int
   parentIdx     Int?
-  Comment       Comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
-  other_Comment Comment[] @relation("CommentToComment")
-  Post          Post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
-  User          User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
+  Comment       comment?  @relation("CommentToComment", fields: [parentIdx], references: [idx])
+  other_Comment comment[] @relation("CommentToComment")
+  post          post      @relation(fields: [postIdx], references: [idx], onDelete: Cascade)
+  user          user?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
 }
 
-model Post {
+model post {
   idx        Int       @id @default(autoincrement())
   category   String
   title      String
@@ -58,11 +54,11 @@ model Post {
   userIdx    Int?
   ip         String?
   nickname   String?
-  Comment    Comment[]
-  User       User?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
+  comment    comment[]
+  user       user?     @relation(fields: [userIdx], references: [idx], onDelete: Cascade)
 }
 
-model Subscription {
+model subscription {
   id         Int      @id @default(autoincrement())
   endpoint   String
   p256dh     String
@@ -77,7 +73,7 @@ model Subscription {
   @@unique([endpoint, type, postId, commentId])
 }
 
-model User {
+model user {
   idx        Int       @id @default(autoincrement())
   id         String    @unique
   password   String
@@ -85,6 +81,6 @@ model User {
   created_at DateTime  @default(now())
   updated_at DateTime
   avatar     String?
-  Comment    Comment[]
-  Post       Post[]
+  comment    comment[]
+  post       post[]
 }
