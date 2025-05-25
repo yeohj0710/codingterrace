@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   idx        Int       @id @default(autoincrement())
-  id         String
+  id         String    @unique
   password   String
   nickname   String    @unique
   created_at DateTime  @default(now())
@@ -60,10 +60,10 @@ model Subscription {
   auth       String
   type       String
   postId     Int?
-  created_at DateTime @default(now())
+  commentId  Int?
   latitude   Float?
   longitude  Float?
-  commentId  Int?
+  created_at DateTime @default(now())
 
   @@unique([endpoint, type, postId, commentId])
 }
