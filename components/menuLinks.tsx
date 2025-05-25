@@ -22,6 +22,14 @@ export function MenuLinks() {
         자유게시판
       </Link>
       <Link
+        href="/chart"
+        className={menuItemClasses(
+          "font-bold whitespace-nowrap overflow-hidden text-ellipsis"
+        )}
+      >
+        차트
+      </Link>
+      <Link
         href="/weather"
         className={menuItemClasses(
           "font-bold whitespace-nowrap overflow-hidden text-ellipsis"
