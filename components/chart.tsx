@@ -10,6 +10,7 @@ export default function Chart() {
   const [ticker, setTicker] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [rawData, setRawData] = useState<Bar[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [viewCount, setViewCount] = useState(30);
   const [viewStart, setViewStart] = useState(0);
   const [yDomain, setYDomain] = useState<{ min: number; max: number } | null>(
@@ -28,42 +29,53 @@ export default function Chart() {
 
   const limitDays = 5000;
 
-  const loadData = (symbol: string) => {
-    const now = new Date();
-    const startDate = new Date(now.getTime() - limitDays * 24 * 60 * 60 * 1000);
-    const start = startDate.toISOString().slice(0, 10);
-    const end = now.toISOString().slice(0, 10);
-
-    fetch(
-      `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${start}/${end}?limit=${limitDays}&apiKey=${process.env.NEXT_PUBLIC_POLYGON_API_KEY}`
-    )
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.results) {
-          const bars: Bar[] = j.results.map((b: any) => ({
-            t: b.t,
-            o: b.o,
-            h: b.h,
-            l: b.l,
-            c: b.c,
-          }));
-          setRawData(bars);
-          setTicker(symbol);
-          setViewCount(30);
-          setViewStart(Math.max(0, bars.length - 30));
-          setYDomain(null);
-
-          fetch(
-            `https://api.polygon.io/v3/reference/tickers/${symbol}?apiKey=${process.env.NEXT_PUBLIC_POLYGON_API_KEY}`
-          )
-            .then((r) => r.json())
-            .then((d) => {
-              if (d.results?.name)
-                setCompanyName(d.results.name.replace(/ Common Stock$/, ""));
-            })
-            .catch(() => setCompanyName(""));
-        }
-      });
+  const loadData = async (symbol: string) => {
+    if (!symbol.trim()) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const now = new Date();
+      const startDate = new Date(
+        now.getTime() - limitDays * 24 * 60 * 60 * 1000
+      );
+      const start = startDate.toISOString().slice(0, 10);
+      const end = now.toISOString().slice(0, 10);
+      const res = await fetch(
+        `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${start}/${end}?limit=${limitDays}&apiKey=${process.env.NEXT_PUBLIC_POLYGON_API_KEY}`
+      );
+      const j = await res.json();
+      if (!j.results || j.results.length === 0) {
+        alert("검색 결과가 없습니다.");
+        return;
+      }
+      const bars: Bar[] = j.results.map((b: any) => ({
+        t: b.t,
+        o: b.o,
+        h: b.h,
+        l: b.l,
+        c: b.c,
+      }));
+      setRawData(bars);
+      setTicker(symbol);
+      setViewCount(30);
+      setViewStart(Math.max(0, bars.length - 30));
+      setYDomain(null);
+      const infoRes = await fetch(
+        `https://api.polygon.io/v3/reference/tickers/${symbol}?apiKey=${process.env.NEXT_PUBLIC_POLYGON_API_KEY}`
+      );
+      const info = await infoRes.json();
+      if (info.results?.name) {
+        setCompanyName(info.results.name.replace(/ Common Stock$/, ""));
+      } else {
+        setCompanyName("");
+      }
+    } catch (err) {
+      console.error(err);
+      setCompanyName("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const fetchOlder = () => {
@@ -322,19 +334,28 @@ export default function Chart() {
       }}
       className="w-full sm:w-[640px] xl:w-1/2 mb-12"
     >
-      <div className="flex gap-4 mb-6">
+      <div className="flex gap-3 mb-6 h-10">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === "Enter" && loadData(input)}
-          className="flex-1 p-2 border border-gray-300 rounded"
+          className="flex-1 p-2 border border-gray-300 rounded-lg"
           placeholder="검색할 티커 입력"
         />
         <button
           type="submit"
-          className="px-4 py-2 bg-green-400 hover:bg-green-500 text-white rounded"
+          disabled={isLoading}
+          className={`
+            w-16 px-4 py-2 rounded-lg text-white bg-green-400
+            flex items-center justify-center
+            ${isLoading ? "cursor-not-allowed" : "hover:bg-green-500"}
+          `}
         >
-          조회
+          {isLoading ? (
+            <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin" />
+          ) : (
+            "조회"
+          )}
         </button>
       </div>
       {companyName && (
