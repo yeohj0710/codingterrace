@@ -13,7 +13,7 @@ export default function ChartPage() {
         <span className="font-bold text-lg">주식 차트</span>
         <span className="text-sm text-gray-500">
           원하는 종목의 티커나 종목명을 검색해 차트를 확인해보세요. (미국 주식,
-          해외 주식, 코인, 해외 선물 등)
+          코인, 해외 선물 등)
         </span>
       </div>
       <OpenExternalInKakao path="/chart" />
