@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 
 type Bar = { t: number; o: number; h: number; l: number; c: number };
+type Suggestion = { symbol: string; name: string };
 
 export default function Chart() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [input, setInput] = useState("");
   const [ticker, setTicker] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -17,6 +19,32 @@ export default function Chart() {
     null
   );
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!suggestions.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((i) => Math.min(suggestions.length - 1, i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((i) => Math.max(0, i - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const sel = suggestions[selectedIndex] || null;
+      if (sel) {
+        setInput(sel.symbol);
+        setSuggestions([]);
+        loadData(sel.symbol);
+      } else {
+        setSuggestions([]);
+        loadData(input);
+      }
+    }
+  };
+
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
   const dragStartY = useRef(0);
@@ -27,93 +55,120 @@ export default function Chart() {
   });
   const [fetchingOlder, setFetchingOlder] = useState(false);
 
-  const limitDays = 5000;
+  const panStep = 5;
+  const zoomFactor = 0.9;
+  const toEpoch = (d: Date) => Math.floor(d.getTime() / 1000);
 
   const loadData = async (symbol: string) => {
-    if (!symbol.trim()) {
+    if (!symbol.trim()) return;
+    setIsLoading(true);
+
+    const now = new Date();
+    const period1 = 0;
+    const period2 = toEpoch(now);
+
+    const res = await fetch(
+      `/api/yahoo?symbol=${symbol}&period1=${period1}&period2=${period2}&interval=1d`
+    );
+    const j = await res.json();
+    const result = j.chart?.result?.[0];
+    if (!result || !result.timestamp?.length) {
+      alert("검색 결과가 없습니다.");
+      setIsLoading(false);
       return;
     }
-    setIsLoading(true);
-    try {
-      const now = new Date();
-      const startDate = new Date(
-        now.getTime() - limitDays * 24 * 60 * 60 * 1000
+
+    const { timestamp, indicators, meta } = result;
+    const quote = indicators.quote[0];
+    const bars: Bar[] = timestamp
+      .map((t: number, i: number) => ({
+        t: t * 1000,
+        o: quote.open[i],
+        h: quote.high[i],
+        l: quote.low[i],
+        c: quote.close[i],
+      }))
+      .filter(
+        (b: any) => b.o != null && b.h != null && b.l != null && b.c != null
       );
-      const start = startDate.toISOString().slice(0, 10);
-      const end = now.toISOString().slice(0, 10);
-      const res = await fetch(
-        `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${start}/${end}?limit=${limitDays}&apiKey=${process.env.NEXT_PUBLIC_POLYGON_API_KEY}`
-      );
-      const j = await res.json();
-      if (!j.results || j.results.length === 0) {
-        alert("검색 결과가 없습니다.");
-        return;
-      }
-      const bars: Bar[] = j.results.map((b: any) => ({
-        t: b.t,
-        o: b.o,
-        h: b.h,
-        l: b.l,
-        c: b.c,
-      }));
-      setRawData(bars);
-      setTicker(symbol);
-      setViewCount(30);
-      setViewStart(Math.max(0, bars.length - 30));
-      setYDomain(null);
-      const infoRes = await fetch(
-        `https://api.polygon.io/v3/reference/tickers/${symbol}?apiKey=${process.env.NEXT_PUBLIC_POLYGON_API_KEY}`
-      );
-      const info = await infoRes.json();
-      if (info.results?.name) {
-        setCompanyName(info.results.name.replace(/ Common Stock$/, ""));
-      } else {
-        setCompanyName("");
-      }
-    } catch (err) {
-      console.error(err);
-      setCompanyName("");
-    } finally {
-      setIsLoading(false);
-    }
+
+    setRawData(bars);
+    setTicker(symbol);
+    setViewCount(30);
+    setViewStart(Math.max(0, bars.length - 30));
+    setYDomain(null);
+    setCompanyName(meta.longName || meta.shortName || meta.symbol || "");
+    setIsLoading(false);
   };
 
-  const fetchOlder = () => {
-    if (fetchingOlder || rawData.length === 0) return;
-    setFetchingOlder(true);
-    const oldest = rawData[0].t; // timestamp in ms
-    const endDate = new Date(oldest - 24 * 60 * 60 * 1000);
-    const startDate = new Date(
-      endDate.getTime() - limitDays * 24 * 60 * 60 * 1000
-    );
-    const start = startDate.toISOString().slice(0, 10);
-    const end = endDate.toISOString().slice(0, 10);
+  useEffect(() => {
+    if (!input) {
+      setSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const res = await fetch(
+        `/api/autocomplete?query=${encodeURIComponent(input)}`
+      );
+      const j = await res.json();
+      const list = j.quotes || [];
+      setSuggestions(
+        list.map((q: any) => ({
+          symbol: q.symbol,
+          name: q.shortname || q.longname || "",
+        }))
+      );
+      setSelectedIndex(-1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [input]);
 
-    fetch(
-      `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${start}/${end}?limit=${limitDays}&apiKey=${process.env.NEXT_PUBLIC_POLYGON_API_KEY}`
-    )
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.results) {
-          const older: Bar[] = j.results.map((b: any) => ({
-            t: b.t,
-            o: b.o,
-            h: b.h,
-            l: b.l,
-            c: b.c,
-          }));
-          setRawData((prev) => [...older, ...prev]);
-          setViewStart((vs) => vs + older.length);
-        }
-      })
-      .finally(() => {
-        setFetchingOlder(false);
-      });
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setSuggestions([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchOlder = async () => {
+    if (fetchingOlder || !rawData.length) return;
+    setFetchingOlder(true);
+
+    const oldestMs = rawData[0].t;
+    const endSec = Math.floor(oldestMs / 1000) - 86400;
+
+    const res = await fetch(
+      `/api/yahoo?symbol=${ticker}&period1=0&period2=${endSec}&interval=1d`
+    );
+    const j = await res.json();
+    const result = j.chart?.result?.[0];
+    if (result?.timestamp) {
+      const { timestamp, indicators } = result;
+      const quote = indicators.quote[0];
+      const older: Bar[] = timestamp
+        .map((t: number, i: number) => ({
+          t: t * 1000,
+          o: quote.open[i],
+          h: quote.high[i],
+          l: quote.low[i],
+          c: quote.close[i],
+        }))
+        .filter(
+          (b: any) => b.o != null && b.h != null && b.l != null && b.c != null
+        );
+      setRawData((prev) => [...older, ...prev]);
+      setViewStart((vs) => vs + older.length);
+    }
+
+    setFetchingOlder(false);
   };
 
   const draw = () => {
     const canvas = canvasRef.current;
-    if (!canvas || rawData.length === 0) return;
+    if (!canvas || !rawData.length) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -123,20 +178,35 @@ export default function Chart() {
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
 
-    const w = rect.width,
-      h = rect.height;
-    const pad = { top: 20, right: 60, bottom: 30, left: 20 };
-    ctx.clearRect(0, 0, w, h);
+    const w = rect.width;
+    const h = rect.height;
 
     const data = rawData.slice(viewStart, viewStart + viewCount);
-    const highs = data.map((d) => d.h),
-      lows = data.map((d) => d.l);
-    const actualMax = Math.max(...highs),
-      actualMin = Math.min(...lows);
-    const yMin = yDomain?.min ?? actualMin,
-      yMax = yDomain?.max ?? actualMax;
+    const highs = data.map((d) => d.h);
+    const lows = data.map((d) => d.l);
+    const actualMax = Math.max(...highs);
+    const actualMin = Math.min(...lows);
+    const yMin = yDomain?.min ?? actualMin;
+    const yMax = yDomain?.max ?? actualMax;
+
+    ctx.font = "12px sans-serif";
+    const yLabels = Array.from({ length: 6 }, (_, i) => {
+      const v = yMax - (i * (yMax - yMin)) / 5;
+      return v.toFixed(2);
+    });
+    const labelW = Math.max(...yLabels.map((t) => ctx.measureText(t).width));
+
+    const pad = {
+      top: 20,
+      right: labelW + 15,
+      bottom: 46,
+      left: 20,
+    };
+
     const yScale = (h - pad.top - pad.bottom) / (yMax - yMin);
     const cellW = (w - pad.left - pad.right) / data.length;
+
+    ctx.clearRect(0, 0, w, h);
 
     ctx.strokeStyle = "#eee";
     ctx.lineWidth = 1;
@@ -189,73 +259,74 @@ export default function Chart() {
     ctx.lineTo(w - pad.right, h - pad.bottom);
     ctx.stroke();
 
-    ctx.font = "12px sans-serif";
     ctx.fillStyle = "#333";
-    ctx.textAlign = "right";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const labelX = w - pad.right + 5;
     for (let i = 0; i <= 5; i++) {
-      const price = yMax - (i * (yMax - yMin)) / 5;
+      const v = yMax - (i * (yMax - yMin)) / 5;
       const y = pad.top + (i * (h - pad.top - pad.bottom)) / 5;
-      ctx.fillText(price.toFixed(2), w - pad.right + 45, y + 4);
+      ctx.fillText(v.toFixed(2), labelX, y);
     }
 
     ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    for (let i = 0; i < 5; i++) {
-      const idx = Math.floor((i * (data.length - 1)) / 4);
-      const d = new Date(data[idx].t);
-      const label = `${d.getMonth() + 1}/${d.getDate()}`;
+    data.forEach((d, idx) => {
+      const step = Math.max(1, Math.floor(data.length / 5));
+      if (idx % step !== 0 && idx !== data.length - 1) return;
+      const date = new Date(d.t);
       const x = pad.left + idx * cellW + cellW / 2;
-      ctx.fillText(label, x, h - pad.bottom + 5);
-    }
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        `${date.getMonth() + 1}/${date.getDate()}`,
+        x,
+        h - pad.bottom + 2
+      );
+      ctx.fillText(`${date.getFullYear()}`, x, h - pad.bottom + 18);
+    });
   };
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const rightPad = 60;
+    const yAxisPad = 60;
+    const step = 5;
+    const minCnt = 5;
 
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
       if (e.deltaX < 0) {
-        if (viewStart === 0) {
-          fetchOlder();
-        } else {
-          setViewStart((vs) => Math.max(0, vs - 1));
-        }
+        if (viewStart === 0) fetchOlder();
+        else setViewStart((vs) => Math.max(0, vs - step));
       } else {
-        setViewStart((vs) => Math.min(rawData.length - viewCount, vs + 1));
+        setViewStart((vs) => Math.min(rawData.length - viewCount, vs + step));
       }
+      return;
+    }
+
+    if (x >= rect.width - yAxisPad) {
+      const data = rawData.slice(viewStart, viewStart + viewCount);
+      const highs = data.map((d) => d.h),
+        lows = data.map((d) => d.l);
+      const aMax = Math.max(...highs),
+        aMin = Math.min(...lows);
+      const curMin = yDomain?.min ?? aMin;
+      const curMax = yDomain?.max ?? aMax;
+      const center = (curMin + curMax) / 2;
+      const f = e.deltaY < 0 ? zoomFactor : 1 / zoomFactor;
+      const half = ((curMax - curMin) / 2) * f;
+      setYDomain({ min: center - half, max: center + half });
+      return;
+    }
+
+    if (e.deltaY < 0) {
+      if (viewStart === 0) fetchOlder();
+      else setViewStart((vs) => Math.max(0, vs - step));
+      setViewCount((vc) => Math.min(rawData.length, vc + step));
     } else {
-      if (x >= rect.width - rightPad) {
-        const delta = e.deltaY < 0 ? 0.9 : 1.1;
-        const highs = rawData.map((d) => d.h),
-          lows = rawData.map((d) => d.l);
-        const aMax = Math.max(...highs),
-          aMin = Math.min(...lows);
-        const curMin = yDomain?.min ?? aMin,
-          curMax = yDomain?.max ?? aMax;
-        const center = (curMin + curMax) / 2;
-        const half = ((curMax - curMin) / 2) * delta;
-        setYDomain({ min: center - half, max: center + half });
-      } else if (x < rightPad) {
-        if (e.deltaY < 0 && viewStart === 0) {
-          fetchOlder();
-        } else if (e.deltaY < 0) {
-          setViewStart((vs) => Math.max(0, vs - 1));
-        } else {
-          setViewStart((vs) => Math.min(rawData.length - viewCount, vs + 1));
-        }
-      } else {
-        const delta = e.deltaY < 0 ? 0.9 : 1.1;
-        if (e.deltaY < 0) {
-          setViewCount((vc) => Math.min(rawData.length, vc + 1));
-          setViewStart((vs) => Math.max(0, vs - 1));
-        } else {
-          setViewCount((vc) => Math.max(5, vc - 1));
-          setViewStart((vs) => Math.min(rawData.length - viewCount, vs + 1));
-        }
+      if (viewCount > minCnt) {
+        setViewStart((vs) => Math.min(rawData.length - minCnt, vs + step));
+        setViewCount((vc) => Math.max(minCnt, vc - step));
       }
     }
   };
@@ -265,8 +336,9 @@ export default function Chart() {
     dragStartX.current = e.clientX;
     dragStartY.current = e.clientY;
     dragStartView.current = viewStart;
-    const highs = rawData.map((d) => d.h),
-      lows = rawData.map((d) => d.l);
+    const data = rawData.slice(viewStart, viewStart + viewCount);
+    const highs = data.map((d) => d.h),
+      lows = data.map((d) => d.l);
     const aMax = Math.max(...highs),
       aMin = Math.min(...lows);
     dragStartYDomain.current = yDomain
@@ -283,14 +355,12 @@ export default function Chart() {
       h = rect.height;
     const pad = { top: 20, right: 60, bottom: 30, left: 20 };
     const cellW = (w - pad.left - pad.right) / viewCount;
-
     const dx = e.clientX - dragStartX.current;
     const dBars = Math.round(-dx / cellW);
     const maxStart = rawData.length - viewCount;
     setViewStart(
       Math.min(Math.max(0, dragStartView.current + dBars), maxStart)
     );
-
     const dy = e.clientY - dragStartY.current;
     const yRange = dragStartYDomain.current.max - dragStartYDomain.current.min;
     const pricePerPx = yRange / (h - pad.top - pad.bottom);
@@ -309,6 +379,7 @@ export default function Chart() {
   useEffect(() => {
     draw();
   }, [rawData, viewStart, viewCount, yDomain]);
+
   useEffect(() => {
     const canvas = canvasRef.current!;
     canvas.addEventListener("wheel", handleWheel, { passive: false });
@@ -330,40 +401,65 @@ export default function Chart() {
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        setSuggestions([]);
         loadData(input);
       }}
       className="w-full sm:w-[640px] xl:w-1/2 mb-12"
     >
-      <div className="flex gap-3 mb-6 h-10">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value.toUpperCase())}
-          onKeyDown={(e) => e.key === "Enter" && loadData(input)}
-          className="flex-1 p-2 border border-gray-300 rounded-lg"
-          placeholder="검색할 티커 입력"
-        />
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`
-            w-16 px-4 py-2 rounded-lg text-white bg-green-400
-            flex items-center justify-center
-            ${isLoading ? "cursor-not-allowed" : "hover:bg-green-500"}
-          `}
-        >
-          {isLoading ? (
-            <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin" />
-          ) : (
-            "조회"
-          )}
-        </button>
+      <div ref={containerRef} className="mb-6">
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value.toUpperCase())}
+              onKeyDown={onKeyDown}
+              className="h-9 w-full p-2 border border-gray-300 rounded-lg"
+              placeholder="검색할 티커 입력"
+            />
+            {suggestions.length > 0 && (
+              <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-auto bg-white border border-gray-200 rounded-lg shadow z-10">
+                {suggestions.map((s, i) => (
+                  <li
+                    key={s.symbol}
+                    className={`px-3 py-1 cursor-pointer ${
+                      i === selectedIndex ? "bg-gray-100" : ""
+                    }`}
+                    onMouseDown={() => {
+                      setInput(s.symbol);
+                      setSuggestions([]);
+                      loadData(s.symbol);
+                    }}
+                  >
+                    {s.symbol} - {s.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-16 h-9 px-4 py-2 rounded-lg text-white bg-green-400 flex items-center justify-center ${
+              isLoading ? "cursor-not-allowed" : "hover:bg-green-500"
+            }`}
+          >
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin" />
+            ) : (
+              "조회"
+            )}
+          </button>
+        </div>
       </div>
       {companyName && (
-        <div className="text-xl font-semibold mb-4">{companyName}</div>
+        <div className="text-center text-xl font-semibold mb-4">
+          {companyName}
+        </div>
       )}
       <canvas
         ref={canvasRef}
-        className="w-full h-[500px] bg-white rounded-lg shadow"
+        className="w-[max(640px,80vw)] h-[max(500px,80vw*0.5)] relative left-1/2 -translate-x-1/2 bg-white rounded-lg shadow"
       />
     </form>
   );

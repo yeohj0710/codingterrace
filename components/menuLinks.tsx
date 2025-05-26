@@ -27,7 +27,7 @@ export function MenuLinks() {
           "font-bold whitespace-nowrap overflow-hidden text-ellipsis"
         )}
       >
-        차트
+        주식 차트
       </Link>
       <Link
         href="/weather"
