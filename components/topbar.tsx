@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { MenuLinks, UserLink } from "./menuLinks";
 import { getUser } from "@/lib/auth";
@@ -17,33 +17,57 @@ export default function TopBar() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [visible, setVisible] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
+
+  const prevScrollY = useRef(0);
+  const lastActionY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const TH = 200;
+      if (currentY < 10) {
+        setVisible(true);
+        lastActionY.current = 0;
+      } else if (currentY - lastActionY.current > TH / 4) {
+        setVisible(false);
+        lastActionY.current = currentY;
+      } else if (lastActionY.current - currentY > TH) {
+        setVisible(true);
+        lastActionY.current = currentY;
+      }
+      prevScrollY.current = currentY;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const userData: any = await getUser();
         setUser(userData);
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-      }
+      } catch {}
     };
     fetchUser();
   }, [pathname]);
-  const closeDrawer = () => {
-    setIsDrawerOpen(false);
-  };
+
+  const closeDrawer = () => setIsDrawerOpen(false);
+
   const handleSearchSubmit = () => {
-    if (searchQuery.trim() === "") {
-      alert("검색어를 입력해주세요.");
-      return;
-    }
+    if (!searchQuery.trim()) return alert("검색어를 입력해주세요.");
     router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
     setIsSearchOpen(false);
   };
+
   return (
     <>
-      <header className="flex items-center justify-between fixed top-0 w-full bg-white z-50 h-14 shadow-md px-6">
+      <header
+        className={`flex items-center justify-between fixed top-0 w-full bg-white z-50 h-14 shadow-md px-6 transform transition-transform duration-300 ${
+          visible ? "translate-y-0" : "-translate-y-full"
+        }`}
+      >
         <div className="flex items-center gap-6">
           <Link
             href="/"
@@ -74,6 +98,7 @@ export default function TopBar() {
           </button>
         </div>
       </header>
+
       <div
         className={`fixed top-0 right-0 h-full bg-white shadow-lg z-40 transform transition-transform duration-300 ${
           isDrawerOpen ? "translate-x-0" : "translate-x-full"
@@ -88,12 +113,14 @@ export default function TopBar() {
           <UserLink user={user} />
         </div>
       </div>
+
       {isDrawerOpen && (
         <div
           className="fixed inset-0 bg-black opacity-50 z-30"
           onClick={closeDrawer}
         />
       )}
+
       {isSearchOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
@@ -120,12 +147,8 @@ export default function TopBar() {
                 placeholder="제목이나 내용을 검색하세요"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearchSubmit();
-                  }
-                }}
-                className="w-full text-sm pl-10 pr-20 py-2.5 ring-1 ring-gray-300 focus:ring-2 focus:ring-green-600 focus:ring-offset-0 outline-none rounded-lg"
+                onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
+                className="w-full text-sm pl-10 pr-20 py-2.5 ring-1 ring-gray-300 focus:ring-2 focus:ring-green-600 outline-none rounded-lg"
               />
               <button
                 onClick={handleSearchSubmit}

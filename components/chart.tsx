@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 
 type Bar = { t: number; o: number; h: number; l: number; c: number };
 type Suggestion = { symbol: string; name: string };
+type Anchor = { idx: number; y: number };
+type ExtendedLine = { start: Anchor; end: Anchor };
 
 export default function Chart() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState("AAPL");
   const [ticker, setTicker] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [rawData, setRawData] = useState<Bar[]>([]);
@@ -18,10 +20,123 @@ export default function Chart() {
   const [yDomain, setYDomain] = useState<{ min: number; max: number } | null>(
     null
   );
+  const [tempAnchor, setTempAnchor] = useState<Anchor | null>(null);
+  const [extendedLines, setExtendedLines] = useState<ExtendedLine[]>([]);
+  const [selectedLineIndex, setSelectedLineIndex] = useState<number | null>(
+    null
+  );
+  const [draggingLineIndex, setDraggingLineIndex] = useState<number | null>(
+    null
+  );
+  const mousePosRef = useRef<{ x: number; y: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const lineDragStartMouse = useRef<{ x: number; y: number } | null>(null);
+  const lineOriginal = useRef<ExtendedLine | null>(null);
+
+  const handleLineMouseDown = (e: MouseEvent) => {
+    if (
+      selectedLineIndex == null ||
+      canvasRef.current!.style.cursor !== "pointer"
+    )
+      return;
+    setDraggingLineIndex(selectedLineIndex);
+    lineDragStartMouse.current = { x: e.clientX, y: e.clientY };
+    lineOriginal.current = extendedLines[selectedLineIndex];
+  };
+
+  const handleLineMouseMove = (e: MouseEvent) => {
+    if (draggingLineIndex == null) return;
+    const start = lineDragStartMouse.current;
+    const orig = lineOriginal.current;
+    if (!start || !orig) return;
+
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const pad = { top: 20, right: 60, bottom: 46, left: 20 };
+
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+
+    const plotW = rect.width - pad.left - pad.right;
+    const pxToBar = viewCount / plotW;
+    const dIdx = dx * pxToBar;
+
+    const plotH = rect.height - pad.top - pad.bottom;
+    const data = rawData.slice(viewStart, viewStart + viewCount);
+    const highs = data.map((d) => d.h),
+      lows = data.map((d) => d.l);
+    const aMax = Math.max(...highs),
+      aMin = Math.min(...lows);
+    const yMin = yDomain?.min ?? aMin,
+      yMax = yDomain?.max ?? aMax;
+    const pxToPr = (yMax - yMin) / plotH;
+    const dPrice = dy * pxToPr;
+
+    setExtendedLines((lines) =>
+      lines.map((ln, i) =>
+        i === draggingLineIndex
+          ? {
+              start: { idx: orig.start.idx + dIdx, y: orig.start.y - dPrice },
+              end: { idx: orig.end.idx + dIdx, y: orig.end.y - dPrice },
+            }
+          : ln
+      )
+    );
+  };
+
+  const handleLineMouseUp = () => {
+    setDraggingLineIndex(null);
+  };
+
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && tempAnchor) {
+        setTempAnchor(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [tempAnchor]);
+
+  const handleMouseHover = (e: MouseEvent) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const pos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    mousePosRef.current = pos;
+    let onLine = false;
+    const pad = { top: 20, right: 60, bottom: 46, left: 20 };
+    const data = rawData.slice(viewStart, viewStart + viewCount);
+    const highs = data.map((d) => d.h),
+      lows = data.map((d) => d.l);
+    const actualMax = Math.max(...highs),
+      actualMin = Math.min(...lows);
+    const yMin = yDomain?.min ?? actualMin;
+    const yMax = yDomain?.max ?? actualMax;
+    if (pos) {
+      extendedLines.forEach((line) => {
+        const cellW = (rect.width - pad.left - pad.right) / viewCount;
+        const x1 = pad.left + (line.start.idx - viewStart) * cellW + cellW / 2;
+        const y1 =
+          pad.top +
+          (yMax - line.start.y) *
+            ((rect.height - pad.top - pad.bottom) / (yMax - yMin));
+        const x2 = pad.left + (line.end.idx - viewStart) * cellW + cellW / 2;
+        const y2 =
+          pad.top +
+          (yMax - line.end.y) *
+            ((rect.height - pad.top - pad.bottom) / (yMax - yMin));
+        const dist =
+          Math.abs((y2 - y1) * pos.x - (x2 - x1) * pos.y + x2 * y1 - y2 * x1) /
+          Math.hypot(y2 - y1, x2 - x1);
+        if (dist < 5) onLine = true;
+      });
+    }
+    canvas.style.cursor = onLine ? "pointer" : "default";
+    draw();
+  };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!suggestions.length) return;
@@ -94,34 +209,18 @@ export default function Chart() {
 
     setRawData(bars);
     setTicker(symbol);
-    setViewCount(30);
-    setViewStart(Math.max(0, bars.length - 30));
+    const YEAR_COUNT = 251;
+    const count = Math.min(bars.length, YEAR_COUNT);
+    setViewCount(count);
+    setViewStart(Math.max(0, bars.length - count));
     setYDomain(null);
     setCompanyName(meta.longName || meta.shortName || meta.symbol || "");
     setIsLoading(false);
   };
 
   useEffect(() => {
-    if (!input) {
-      setSuggestions([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      const res = await fetch(
-        `/api/autocomplete?query=${encodeURIComponent(input)}`
-      );
-      const j = await res.json();
-      const list = j.quotes || [];
-      setSuggestions(
-        list.map((q: any) => ({
-          symbol: q.symbol,
-          name: q.shortname || q.longname || "",
-        }))
-      );
-      setSelectedIndex(-1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [input]);
+    loadData("AAPL");
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -166,21 +265,87 @@ export default function Chart() {
     setFetchingOlder(false);
   };
 
+  const handleCanvasClick = (e: MouseEvent) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const pad = { top: 20, right: 60, bottom: 46, left: 20 };
+    const data = rawData.slice(viewStart, viewStart + viewCount);
+    const highs = data.map((d) => d.h),
+      lows = data.map((d) => d.l);
+    const actualMax = Math.max(...highs),
+      actualMin = Math.min(...lows);
+    const yMin = yDomain?.min ?? actualMin;
+    const yMax = yDomain?.max ?? actualMax;
+    const hitIndex = extendedLines.findIndex((line) => {
+      const cellW = (rect.width - pad.left - pad.right) / viewCount;
+      const x1 = pad.left + (line.start.idx - viewStart) * cellW + cellW / 2;
+      const y1 =
+        pad.top +
+        (yMax - line.start.y) *
+          ((rect.height - pad.top - pad.bottom) / (yMax - yMin));
+      const x2 = pad.left + (line.end.idx - viewStart) * cellW + cellW / 2;
+      const y2 =
+        pad.top +
+        (yMax - line.end.y) *
+          ((rect.height - pad.top - pad.bottom) / (yMax - yMin));
+      const dist =
+        Math.abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) /
+        Math.hypot(y2 - y1, x2 - x1);
+      return dist < 5;
+    });
+    if (hitIndex === selectedLineIndex) {
+      setSelectedLineIndex(null);
+      return;
+    }
+    if (hitIndex < 0 && selectedLineIndex != null) {
+      setSelectedLineIndex(null);
+      return;
+    }
+    if (hitIndex >= 0) {
+      setSelectedLineIndex(hitIndex);
+      return;
+    }
+    if (!e.shiftKey) return;
+    const xClick = e.clientX - rect.left;
+    const yClick = e.clientY - rect.top;
+    const w = rect.width;
+    const h = rect.height;
+    const yScale = (h - pad.top - pad.bottom) / (yMax - yMin);
+    const cellW = (w - pad.left - pad.right) / data.length;
+    const mouseX = xClick;
+    const rel = xClick - pad.left;
+    const raw = rel / cellW - 0.5;
+    const idxInView = Math.min(data.length - 1, Math.max(0, Math.round(raw)));
+    const bar = data[idxInView];
+    const priceAtClick = yMax - (yClick - pad.top) / yScale;
+    const yVal = priceAtClick > (bar.h + bar.l) / 2 ? bar.h : bar.l;
+    const globalIdx = viewStart + idxInView;
+    const anchor = { idx: globalIdx, y: yVal };
+    if (!tempAnchor) {
+      setTempAnchor(anchor);
+    } else {
+      setExtendedLines((lines) => [
+        ...lines,
+        { start: tempAnchor, end: anchor },
+      ]);
+      setTempAnchor(null);
+    }
+  };
+
   const draw = () => {
     const canvas = canvasRef.current;
     if (!canvas || !rawData.length) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
-
     const w = rect.width;
     const h = rect.height;
-
     const data = rawData.slice(viewStart, viewStart + viewCount);
     const highs = data.map((d) => d.h);
     const lows = data.map((d) => d.l);
@@ -188,26 +353,16 @@ export default function Chart() {
     const actualMin = Math.min(...lows);
     const yMin = yDomain?.min ?? actualMin;
     const yMax = yDomain?.max ?? actualMax;
-
     ctx.font = "12px sans-serif";
     const yLabels = Array.from({ length: 6 }, (_, i) => {
       const v = yMax - (i * (yMax - yMin)) / 5;
       return v.toFixed(2);
     });
     const labelW = Math.max(...yLabels.map((t) => ctx.measureText(t).width));
-
-    const pad = {
-      top: 20,
-      right: labelW + 15,
-      bottom: 46,
-      left: 20,
-    };
-
+    const pad = { top: 20, right: labelW + 15, bottom: 46, left: 20 };
     const yScale = (h - pad.top - pad.bottom) / (yMax - yMin);
     const cellW = (w - pad.left - pad.right) / data.length;
-
     ctx.clearRect(0, 0, w, h);
-
     ctx.strokeStyle = "#eee";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -217,7 +372,6 @@ export default function Chart() {
       ctx.lineTo(w - pad.right, y);
     }
     ctx.stroke();
-
     ctx.save();
     ctx.beginPath();
     ctx.rect(
@@ -248,8 +402,41 @@ export default function Chart() {
         Math.max(1, Math.abs(closeY - openY))
       );
     });
+    extendedLines.forEach((line, i) => {
+      const x1 = pad.left + (line.start.idx - viewStart) * cellW + cellW / 2;
+      const y1 = pad.top + (yMax - line.start.y) * yScale;
+      const x2 = pad.left + (line.end.idx - viewStart) * cellW + cellW / 2;
+      const y2 = pad.top + (yMax - line.end.y) * yScale;
+      const slope = (y2 - y1) / (x2 - x1);
+      const startX = pad.left;
+      const endX = w - pad.right;
+      const startY = y1 + slope * (startX - x1);
+      const endY = y1 + slope * (endX - x1);
+      ctx.strokeStyle = i === selectedLineIndex ? "#0033cc" : "#2196f3";
+      ctx.lineWidth = i === selectedLineIndex ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+    });
+    if (tempAnchor && mousePosRef.current) {
+      const ax = pad.left + (tempAnchor.idx - viewStart) * cellW + cellW / 2;
+      const ay = pad.top + (yMax - tempAnchor.y) * yScale;
+      const mx = mousePosRef.current.x;
+      const my = mousePosRef.current.y;
+      const slope = (my - ay) / (mx - ax);
+      const sx = pad.left;
+      const ex = w - pad.right;
+      const sy = ay + slope * (sx - ax);
+      const ey = ay + slope * (ex - ax);
+      ctx.strokeStyle = "#2196f3";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+    }
     ctx.restore();
-
     ctx.strokeStyle = "#333";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -258,7 +445,6 @@ export default function Chart() {
     ctx.moveTo(w - pad.right, pad.top);
     ctx.lineTo(w - pad.right, h - pad.bottom);
     ctx.stroke();
-
     ctx.fillStyle = "#333";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
@@ -268,7 +454,6 @@ export default function Chart() {
       const y = pad.top + (i * (h - pad.top - pad.bottom)) / 5;
       ctx.fillText(v.toFixed(2), labelX, y);
     }
-
     ctx.textAlign = "center";
     data.forEach((d, idx) => {
       const step = Math.max(1, Math.floor(data.length / 5));
@@ -283,6 +468,21 @@ export default function Chart() {
       );
       ctx.fillText(`${date.getFullYear()}`, x, h - pad.bottom + 18);
     });
+    if (mousePosRef.current) {
+      const { x, y } = mousePosRef.current;
+      ctx.strokeStyle = "#aaa";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
   };
 
   const handleWheel = (e: WheelEvent) => {
@@ -344,10 +544,10 @@ export default function Chart() {
     dragStartYDomain.current = yDomain
       ? { ...yDomain }
       : { min: aMin, max: aMax };
-    canvasRef.current!.style.cursor = "grabbing";
   };
 
   const handleMouseMove = (e: MouseEvent) => {
+    if (draggingLineIndex !== null) return;
     if (!isDragging.current) return;
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
@@ -373,29 +573,80 @@ export default function Chart() {
 
   const handleMouseUp = () => {
     isDragging.current = false;
-    canvasRef.current!.style.cursor = "grab";
   };
 
   useEffect(() => {
     draw();
-  }, [rawData, viewStart, viewCount, yDomain]);
+  }, [rawData, viewStart, viewCount, yDomain, extendedLines, tempAnchor]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     canvas.addEventListener("wheel", handleWheel, { passive: false });
     canvas.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener("click", handleCanvasClick);
+    canvas.addEventListener("mousemove", handleMouseHover);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("resize", draw);
-    canvas.style.cursor = "grab";
+    const handleKey = (e: KeyboardEvent) => {
+      if (selectedLineIndex == null) return;
+      if (e.key === "Backspace" || e.key === "Delete") {
+        setExtendedLines((lines) =>
+          lines.filter((_, i) => i !== selectedLineIndex)
+        );
+        setSelectedLineIndex(null);
+      }
+      if (e.key === "c" && e.ctrlKey) {
+        const L = extendedLines[selectedLineIndex]!;
+        const canvas = canvasRef.current!;
+        const rect = canvas.getBoundingClientRect();
+        const pad = { top: 20, bottom: 46 };
+        const plotH = rect.height - pad.top - pad.bottom;
+        const data = rawData.slice(viewStart, viewStart + viewCount);
+        const highs = data.map((d) => d.h),
+          lows = data.map((d) => d.l);
+        const aMax = Math.max(...highs),
+          aMin = Math.min(...lows);
+        const curMin = yDomain?.min ?? aMin,
+          curMax = yDomain?.max ?? aMax;
+        const priceRange = curMax - curMin;
+        const offset = priceRange * 0.1;
+        setExtendedLines((lines) => [
+          ...lines,
+          {
+            start: { idx: L.start.idx, y: L.start.y + offset },
+            end: { idx: L.end.idx, y: L.end.y + offset },
+          },
+        ]);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    canvas.addEventListener("mousedown", handleLineMouseDown);
+    window.addEventListener("mousemove", handleLineMouseMove);
+    window.addEventListener("mouseup", handleLineMouseUp);
     return () => {
       canvas.removeEventListener("wheel", handleWheel);
       canvas.removeEventListener("mousedown", handleMouseDown);
+      canvas.removeEventListener("click", handleCanvasClick);
+      canvas.removeEventListener("mousemove", handleMouseHover);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
       window.removeEventListener("resize", draw);
+      window.removeEventListener("keydown", handleKey);
+      canvas.removeEventListener("mousedown", handleLineMouseDown);
+      window.removeEventListener("mousemove", handleLineMouseMove);
+      window.removeEventListener("mouseup", handleLineMouseUp);
     };
-  }, [rawData, viewStart, viewCount, yDomain]);
+  }, [
+    rawData,
+    viewStart,
+    viewCount,
+    yDomain,
+    extendedLines,
+    tempAnchor,
+    selectedLineIndex,
+    draggingLineIndex,
+  ]);
 
   return (
     <form
@@ -404,10 +655,10 @@ export default function Chart() {
         setSuggestions([]);
         loadData(input);
       }}
-      className="w-full sm:w-[640px] xl:w-1/2 mb-12"
+      className="w-full sm:w-[640px] xl:w-1/2"
     >
       <div ref={containerRef} className="mb-6">
-        <div className="flex gap-3">
+        <div className="flex gap-3 px-4 sm:px-0">
           <div className="relative flex-1">
             <input
               ref={inputRef}
@@ -457,10 +708,12 @@ export default function Chart() {
           {companyName}
         </div>
       )}
-      <canvas
-        ref={canvasRef}
-        className="w-[max(640px,80vw)] h-[max(500px,80vw*0.5)] relative left-1/2 -translate-x-1/2 bg-white rounded-lg shadow"
-      />
+      <div className="px-2 sm:px-0">
+        <canvas
+          ref={canvasRef}
+          className="border-2 border-gray-200 w-full h-[50vh] sm:w-[max(640px,80vw)] sm:h-[max(500px,80vw*0.5)] relative left-1/2 -translate-x-1/2 bg-white rounded-lg"
+        />
+      </div>
     </form>
   );
 }
