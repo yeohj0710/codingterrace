@@ -31,7 +31,18 @@ self.addEventListener("push", function (event) {
 
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  const url = event.notification.data.url;
+  let url = "/";
+
+  try {
+    const requestedUrl = new URL(event.notification.data.url, self.location.origin);
+    url =
+      requestedUrl.origin === self.location.origin
+        ? requestedUrl.toString()
+        : self.location.origin + "/";
+  } catch (error) {
+    url = self.location.origin + "/";
+  }
+
   event.waitUntil(
     clients.matchAll({ type: "window" }).then(function (clientList) {
       for (let i = 0; i < clientList.length; i++) {

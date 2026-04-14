@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Input from "@/components/input";
 import { getUser } from "@/lib/auth";
-import { getPost, uploadPost, updatePost } from "@/lib/post";
-import { handlePaste } from "@/lib/handlePaste";
-import { useRouter } from "next/navigation";
 import { handleImageChange } from "@/lib/handleImageChange";
-import { sendNotification, saveSubscription } from "@/lib/notification";
 import { clearPostCache } from "@/lib/cache";
-import { categoryToName, stripMarkdown } from "@/lib/utils";
+import { saveSubscription, urlBase64ToUint8Array } from "@/lib/notification";
+import { getPost, uploadPost, updatePost, verifyPostPassword } from "@/lib/post";
+import { handlePaste } from "@/lib/handlePaste";
+import Input from "@/components/input";
+import { useRouter } from "next/navigation";
 
 interface PostFormProps {
   mode: "add" | "edit";
@@ -29,66 +28,95 @@ export default function PostForm({
   const [title, setTitle] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
+  const [verifiedGuestPassword, setVerifiedGuestPassword] = useState("");
   const [content, setContent] = useState("");
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
+
   useEffect(() => {
     const fetchAllData = async () => {
       const userData = await getUser();
       setUser(userData);
-      if (mode === "edit" && idx) {
-        const postData = await getPost(Number(idx), category);
-        if (!postData) {
-          alert("존재하지 않는 게시물입니다.");
-          router.push(basePath);
-          return;
-        }
-        setPost(postData);
-        setTitle(postData.title);
-        setContent(postData.content);
-        setNickname(postData.nickname ?? "");
-        if (postData.user) {
-          if (!userData || userData.idx !== postData.user.idx) {
-            alert("게시글을 수정할 권한이 없습니다.");
-            router.push(basePath);
-            return;
-          }
-        } else {
-          if (postData.password) {
-            const passwordInput =
-              window.prompt("게시글 비밀번호를 입력해 주세요.");
-            if (passwordInput !== postData.password) {
-              alert("비밀번호가 올바르지 않습니다.");
-              router.push(basePath);
-              return;
-            }
-            setPassword(passwordInput!);
-          } else {
-            alert("게시글을 수정할 권한이 없습니다.");
-            router.push(basePath);
-            return;
-          }
-        }
+
+      if (mode !== "edit" || !idx) {
+        return;
       }
+
+      const postData = await getPost(Number(idx), category);
+
+      if (!postData) {
+        alert("The requested post does not exist.");
+        router.push(basePath);
+        return;
+      }
+
+      setPost(postData);
+      setTitle(postData.title);
+      setContent(postData.content);
+      setNickname(postData.nickname ?? "");
+
+      if (postData.user) {
+        if (!userData || userData.idx !== postData.user.idx) {
+          alert("You do not have permission to edit this post.");
+          router.push(basePath);
+        }
+        return;
+      }
+
+      if (!postData.hasPassword) {
+        alert("This guest post can no longer be edited.");
+        router.push(basePath);
+        return;
+      }
+
+      const passwordInput = window.prompt("Enter the post password.");
+
+      if (!passwordInput) {
+        router.push(basePath);
+        return;
+      }
+
+      let isValidPassword = false;
+
+      try {
+        isValidPassword = await verifyPostPassword(postData.idx, passwordInput);
+      } catch {
+        isValidPassword = false;
+      }
+
+      if (!isValidPassword) {
+        alert("Invalid post password.");
+        router.push(basePath);
+        return;
+      }
+
+      setVerifiedGuestPassword(passwordInput);
+      setPassword(passwordInput);
     };
+
     fetchAllData();
   }, [mode, idx, category, basePath, router]);
+
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(event.target.value);
   };
+
   const handleContentChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
     setContent(event.target.value);
   };
+
   const handleNicknameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setNickname(event.target.value);
   };
+
   const handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(event.target.value);
   };
+
   const onImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     handleImageChange(
       event,
@@ -98,6 +126,7 @@ export default function PostForm({
       contentRef
     );
   };
+
   const handlePasteEvent = async (
     event: React.ClipboardEvent<HTMLTextAreaElement>
   ) => {
@@ -109,82 +138,77 @@ export default function PostForm({
       contentRef
     );
   };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     if (isUploadingImages) {
-      alert("이미지 업로드 중입니다. 잠시만 기다려 주세요.");
+      alert("Images are still uploading. Please wait.");
       return;
     }
+
     setIsSubmitting(true);
-    let postId;
+    let postId: number | null = null;
+
     try {
       const formData = new FormData(e.currentTarget);
+
       if (mode === "add") {
         postId = await uploadPost(category, basePath, formData);
-        const notificationTitle = `${categoryToName(
-          category
-        )}에 새 글이 게시되었어요.`;
-        const strippedContent = stripMarkdown(content);
-        const maxLength = 50;
-        const truncatedContent =
-          strippedContent.length > maxLength
-            ? strippedContent.slice(0, maxLength) + "..."
-            : strippedContent;
-        const notificationMessage = `${title}\n${truncatedContent}`;
-        const postUrl = `https://codingterrace.com/board/${postId ?? idx}`;
-        await sendNotification(
-          notificationTitle,
-          notificationMessage,
-          category,
-          postUrl
-        );
+
         if ("serviceWorker" in navigator && "PushManager" in window) {
           const permission = await Notification.requestPermission();
+
           if (permission === "granted") {
             const registration = await navigator.serviceWorker.ready;
             let subscription = await registration.pushManager.getSubscription();
+
             if (!subscription) {
               subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: process.env.NEXT_PUBLIC_VAPID_KEY,
+                applicationServerKey: urlBase64ToUint8Array(
+                  process.env.NEXT_PUBLIC_VAPID_KEY as string
+                ),
               });
             }
+
             const subscriptionData = {
               ...subscription.toJSON(),
               type: "postAuthor",
               postId,
             };
             await saveSubscription(subscriptionData);
-            console.log(
-              "게시글에 대한 subscription이 등록되었습니다:",
-              subscriptionData
-            );
-          } else {
-            console.warn("알림 권한이 필요합니다.");
           }
         }
       } else if (mode === "edit" && idx) {
         formData.append("idx", idx);
+        if (!post?.user) {
+          formData.append("currentPassword", verifiedGuestPassword);
+        }
         await updatePost(category, formData);
       }
+
       clearPostCache(category);
-    } catch (error) {
-      console.error("게시글 처리 중 에러가 발생했습니다:", error);
+    } catch (error: any) {
+      alert(error?.message || "Failed to save the post.");
     } finally {
       setIsSubmitting(false);
     }
+
     if (postId) {
-      router.push(`${basePath}/${postId}`);
+      router.push(`/${category}/${postId}`);
     }
   };
+
   if (mode === "edit" && !post) {
     return null;
   }
+
   return (
     <div className="flex flex-col items-center">
       <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 mx-auto pt-8 sm:pb-10">
         <h1 className="text-xl font-bold ml-5 sm:ml-0 sm:mb-5">
-          {mode === "add" ? "게시글 작성" : "게시글 수정"}
+          {mode === "add" ? "Write Post" : "Edit Post"}
         </h1>
         <form
           onSubmit={handleSubmit}
@@ -195,13 +219,13 @@ export default function PostForm({
           )}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              제목
+              Title
             </label>
             <Input
               name="title"
               type="text"
               required
-              placeholder="제목을 입력해 주세요."
+              placeholder="Enter a title"
               className="w-full p-2 border rounded-lg"
               value={title}
               onChange={handleTitleChange}
@@ -210,17 +234,17 @@ export default function PostForm({
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mb-4">
             <div className="w-full sm:w-1/2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                작성자
+                Author
               </label>
               {user ? (
                 <div className="px-2 py-1.5 border rounded-lg text-gray-500 bg-gray-200">
-                  {user.nickname ?? "익명"}
+                  {user.nickname ?? "Anonymous"}
                 </div>
               ) : (
                 <Input
                   name="nickname"
                   type="text"
-                  placeholder="닉네임을 입력해 주세요. (선택)"
+                  placeholder="Enter a nickname"
                   className="w-full px-2 py-1.5 border rounded-lg"
                   value={nickname}
                   onChange={handleNicknameChange}
@@ -230,10 +254,10 @@ export default function PostForm({
             </div>
             <div className="w-full sm:w-1/2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                비밀번호
-                <label className="text-xs">
-                  (비회원 게시글 {mode === "add" ? "삭제" : "수정"} 시 필요)
-                </label>
+                Password
+                <span className="text-xs ml-1">
+                  (required to edit or delete guest posts)
+                </span>
               </label>
               {user ? (
                 <div className="px-2 py-1.5 border rounded-lg text-gray-500 bg-gray-200">
@@ -243,7 +267,7 @@ export default function PostForm({
                 <input
                   name="password"
                   type="password"
-                  placeholder="비밀번호를 입력해 주세요."
+                  placeholder="Enter a password"
                   value={password}
                   onChange={handlePasswordChange}
                   className="w-full px-2 py-1.5 border rounded-lg"
@@ -255,13 +279,13 @@ export default function PostForm({
           </div>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              내용
+              Content
             </label>
             <div className="relative">
               <textarea
                 ref={contentRef}
                 name="content"
-                placeholder="내용을 입력해 주세요."
+                placeholder="Enter the post content"
                 required
                 value={content}
                 onChange={handleContentChange}
@@ -274,7 +298,7 @@ export default function PostForm({
                 <div className="absolute inset-0 flex justify-center items-center bg-opacity-75 bg-white">
                   <div className="w-5 h-5 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
                   <span className="ml-3 text-lg text-gray-700">
-                    이미지 업로드 중...
+                    Uploading image...
                   </span>
                 </div>
               )}
@@ -282,14 +306,14 @@ export default function PostForm({
           </div>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-4">
-              이미지 추가
+              Add Images
             </label>
             <div className="relative inline-block">
               <label
                 htmlFor="image"
                 className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
               >
-                이미지 선택
+                Choose images
               </label>
               <input
                 onChange={onImageChange}
@@ -314,13 +338,13 @@ export default function PostForm({
             >
               {isSubmitting ? (
                 <>
-                  {mode === "add" ? "등록 중" : "수정 중"}
+                  {mode === "add" ? "Posting..." : "Saving..."}
                   <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
                 </>
               ) : mode === "add" ? (
-                "등록"
+                "Post"
               ) : (
-                "수정"
+                "Save"
               )}
             </button>
           </div>

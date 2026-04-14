@@ -1,11 +1,103 @@
 "use server";
 
 import db from "@/lib/db";
+import { hashGuestPassword, isHashedPassword, verifyStoredPassword } from "@/lib/password";
+import { sendPushNotification } from "@/lib/push";
+import { checkRateLimit, getRequestRateLimitKey, isUserOperatorSession } from "@/lib/security";
 import getSession from "@/lib/session";
-import { headers } from "next/headers";
+import { publicUserSelect } from "@/lib/selects";
+import { postSchema } from "@/lib/schema";
+import { categoryToName, formatIp, stripMarkdown } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import { formatIp } from "./utils";
-import { postSchema } from "./schema";
+import { headers } from "next/headers";
+
+const POST_LIST_SELECT = {
+  idx: true,
+  category: true,
+  title: true,
+  content: true,
+  created_at: true,
+  nickname: true,
+  ip: true,
+  _count: {
+    select: { comment: true },
+  },
+  user: {
+    select: publicUserSelect,
+  },
+};
+
+const POST_DETAIL_SELECT = {
+  idx: true,
+  nickname: true,
+  ip: true,
+  password: true,
+  category: true,
+  title: true,
+  content: true,
+  created_at: true,
+  user: {
+    select: publicUserSelect,
+  },
+};
+
+async function assertWritePermissionForCategory(category: string) {
+  if (category === "technote" && !(await isUserOperatorSession())) {
+    throw new Error("You do not have permission to modify technical notes.");
+  }
+}
+
+async function getPostForMutation(idx: number) {
+  return db.post.findUnique({
+    where: { idx },
+    select: {
+      idx: true,
+      category: true,
+      nickname: true,
+      password: true,
+      user: {
+        select: {
+          idx: true,
+        },
+      },
+    },
+  });
+}
+
+async function verifyGuestPostAccess(
+  idx: number,
+  suppliedPassword: string | null | undefined
+) {
+  const post = await getPostForMutation(idx);
+
+  if (!post) {
+    throw new Error("Post not found.");
+  }
+
+  if (post.user) {
+    throw new Error("This post must be managed by the account owner.");
+  }
+
+  const isValidPassword = await verifyStoredPassword(
+    post.password,
+    suppliedPassword
+  );
+
+  if (!isValidPassword) {
+    return false;
+  }
+
+  if (post.password && !isHashedPassword(post.password)) {
+    await db.post.update({
+      where: { idx: post.idx },
+      data: {
+        password: await hashGuestPassword(suppliedPassword),
+      },
+    });
+  }
+
+  return true;
+}
 
 export async function getPosts(
   category: string,
@@ -15,19 +107,7 @@ export async function getPosts(
   const skip = (page - 1) * pageSize;
   const posts = await db.post.findMany({
     where: { category },
-    select: {
-      idx: true,
-      user: true,
-      nickname: true,
-      ip: true,
-      category: true,
-      title: true,
-      content: true,
-      created_at: true,
-      _count: {
-        select: { comment: true },
-      },
-    },
+    select: POST_LIST_SELECT,
     orderBy: {
       created_at: "desc",
     },
@@ -38,13 +118,13 @@ export async function getPosts(
   const processedPosts = posts.map((post) => {
     if (post.user) {
       return post;
-    } else {
-      return {
-        ...post,
-        nickname: post.nickname ?? "",
-        ip: post.ip ?? "",
-      };
     }
+
+    return {
+      ...post,
+      nickname: post.nickname ?? "",
+      ip: post.ip ?? "",
+    };
   });
   return { posts: processedPosts, totalPosts };
 }
@@ -54,126 +134,228 @@ export async function getPost(idx: number, category: string) {
     where: {
       idx,
     },
-    select: {
-      idx: true,
-      nickname: true,
-      ip: true,
-      password: true,
-      category: true,
-      title: true,
-      content: true,
-      created_at: true,
-      user: {
-        select: {
-          idx: true,
-          nickname: true,
-          avatar: true,
-        },
-      },
-    },
+    select: POST_DETAIL_SELECT,
   });
+
   if (post && post.category !== category) {
     return null;
   }
-  return post;
+
+  if (!post) {
+    return null;
+  }
+
+  return {
+    idx: post.idx,
+    nickname: post.nickname,
+    ip: post.ip,
+    hasPassword: Boolean(post.password),
+    category: post.category,
+    title: post.title,
+    content: post.content,
+    created_at: post.created_at,
+    user: post.user,
+  };
+}
+
+export async function verifyPostPassword(idx: number, password: string) {
+  return verifyGuestPostAccess(idx, password);
 }
 
 export async function uploadPost(
   category: string,
-  basePath: string,
+  _basePath: string,
   formData: FormData
 ) {
+  const rateLimit = checkRateLimit(getRequestRateLimitKey(`post-create:${category}`), {
+    limit: 10,
+    windowMs: 10 * 60 * 1000,
+  });
+
+  if (!rateLimit.allowed) {
+    throw new Error("Too many post submissions. Please try again later.");
+  }
+
+  await assertWritePermissionForCategory(category);
+
   const data = {
     title: formData.get("title"),
     nickname: formData.get("nickname"),
     password: formData.get("password"),
     content: formData.get("content"),
   };
+
   const result = postSchema.safeParse(data);
+
   if (!result.success) {
-    return result.error.flatten();
+    throw new Error("Invalid post input.");
   }
+
   const session = await getSession();
-  let postData: any = {
+  let postData: {
+    title: string;
+    content: string;
+    category: string;
+    user?: { connect: { idx: number } };
+    nickname?: string;
+    ip?: string;
+    password?: string | null;
+  } = {
     title: result.data.title,
     content: result.data.content,
-    category: category,
+    category,
   };
-  if (session?.idx) {
+
+  if (session.idx) {
     postData.user = {
       connect: {
         idx: session.idx,
       },
     };
   } else {
-    const header = headers();
-    const ip = header.get("x-forwarded-for");
-    const formattedIp = formatIp(ip);
+    const headerStore = headers();
+    const ip = headerStore.get("x-forwarded-for");
     postData = {
       ...postData,
-      nickname: result.data.nickname || "익명",
-      ip: formattedIp,
-      password: result.data.password || "",
+      nickname: result.data.nickname || "Anonymous",
+      ip: formatIp(ip),
+      password: await hashGuestPassword(result.data.password),
     };
   }
+
   const post = await db.post.create({
     data: postData,
     select: {
       idx: true,
+      category: true,
     },
   });
+
+  const strippedContent = stripMarkdown(result.data.content);
+  const preview =
+    strippedContent.length > 50
+      ? `${strippedContent.slice(0, 50)}...`
+      : strippedContent;
+
+  try {
+    await sendPushNotification({
+      type: category,
+      title: `${categoryToName(category)}에 새 글이 등록됐어요.`,
+      message: `${result.data.title}\n${preview}`,
+      url: `/${post.category}/${post.idx}`,
+    });
+  } catch (error) {
+    console.error("Failed to send post notification:", error);
+  }
+
   return post.idx;
 }
 
 export async function updatePost(category: string, formData: FormData) {
+  const idx = Number(formData.get("idx"));
+
+  if (Number.isNaN(idx) || idx <= 0) {
+    throw new Error("Invalid post id.");
+  }
+
   const data = {
-    idx: formData.get("idx"),
     title: formData.get("title"),
     nickname: formData.get("nickname"),
     password: formData.get("password"),
     content: formData.get("content"),
+    currentPassword: formData.get("currentPassword"),
   };
-  const idx = Number(data.idx);
-  if (isNaN(idx)) {
-    return { error: "잘못된 게시글 번호입니다." };
+
+  const result = postSchema.safeParse(data);
+
+  if (!result.success) {
+    throw new Error("Invalid post input.");
   }
+
   const session = await getSession();
-  const post = await db.post.findUnique({
-    where: { idx },
-    include: { user: true },
-  });
+  const post = await getPostForMutation(idx);
+
   if (!post) {
-    return { error: "게시글을 찾을 수 없습니다." };
+    throw new Error("Post not found.");
   }
-  if (post.user && (!session?.idx || session.idx !== post.user.idx)) {
-    return { error: "잘못된 접근입니다." };
+
+  await assertWritePermissionForCategory(post.category);
+
+  if (post.user) {
+    if (!session.idx || session.idx !== post.user.idx) {
+      throw new Error("You do not have permission to edit this post.");
+    }
+  } else {
+    const isValidPassword = await verifyGuestPostAccess(
+      idx,
+      typeof data.currentPassword === "string" ? data.currentPassword : null
+    );
+
+    if (!isValidPassword) {
+      throw new Error("Invalid post password.");
+    }
+
+    if (!result.data.password?.trim()) {
+      throw new Error("Guest posts must keep a password.");
+    }
   }
-  let updateData: any = {
-    title: data.title,
-    content: data.content,
+
+  const updateData: {
+    title: string;
+    content: string;
+    updated_at: Date;
+    nickname?: string;
+    password?: string | null;
+  } = {
+    title: result.data.title,
+    content: result.data.content,
     updated_at: new Date(),
   };
+
   if (!post.user) {
-    updateData.nickname = data.nickname || "익명";
-    updateData.password = data.password;
+    updateData.nickname = result.data.nickname || "Anonymous";
+    updateData.password = await hashGuestPassword(result.data.password);
   }
+
   await db.post.update({
     where: { idx },
     data: updateData,
   });
-  redirect(`/${category}/${idx}`);
+
+  redirect(`/${post.category}/${idx}`);
 }
 
-export async function deletePost(idx: number) {
-  try {
-    await db.post.delete({
-      where: {
-        idx: idx,
-      },
-    });
-  } catch (error) {
-    console.error("게시글 삭제에 실패했습니다:", error);
+export async function deletePost(
+  idx: number,
+  suppliedPassword?: string | null
+) {
+  const post = await getPostForMutation(idx);
+
+  if (!post) {
+    throw new Error("Post not found.");
   }
+
+  await assertWritePermissionForCategory(post.category);
+
+  const session = await getSession();
+
+  if (post.user) {
+    if (!session.idx || session.idx !== post.user.idx) {
+      throw new Error("You do not have permission to delete this post.");
+    }
+  } else {
+    const isValidPassword = await verifyGuestPostAccess(idx, suppliedPassword);
+
+    if (!isValidPassword) {
+      throw new Error("Invalid post password.");
+    }
+  }
+
+  await db.post.delete({
+    where: {
+      idx,
+    },
+  });
 }
 
 export async function searchPosts(
@@ -189,19 +371,7 @@ export async function searchPosts(
         { content: { contains: query, mode: "insensitive" } },
       ],
     },
-    select: {
-      idx: true,
-      user: true,
-      nickname: true,
-      ip: true,
-      category: true,
-      title: true,
-      content: true,
-      created_at: true,
-      _count: {
-        select: { comment: true },
-      },
-    },
+    select: POST_LIST_SELECT,
     orderBy: {
       created_at: "desc",
     },
@@ -219,13 +389,13 @@ export async function searchPosts(
   const processedPosts = posts.map((post) => {
     if (post.user) {
       return post;
-    } else {
-      return {
-        ...post,
-        nickname: post.nickname ?? "",
-        ip: post.ip ?? "",
-      };
     }
+
+    return {
+      ...post,
+      nickname: post.nickname ?? "",
+      ip: post.ip ?? "",
+    };
   });
   return { posts: processedPosts, totalPosts };
 }

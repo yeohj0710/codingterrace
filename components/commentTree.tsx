@@ -3,7 +3,7 @@ import Comment from "./comment";
 interface CommentTreeProps {
   comment: any;
   comments: any[];
-  handleDelete: (commentIdx: number, commentPassword?: string) => Promise<void>;
+  handleDelete: (commentIdx: number, requiresPassword: boolean) => Promise<void>;
   refreshComments: () => void;
   indentLevel?: number;
 }

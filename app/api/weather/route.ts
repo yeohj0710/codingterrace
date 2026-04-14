@@ -1,141 +1,269 @@
-import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
-import webpush from "web-push";
+import { getOrSetResponseCache } from "@/lib/responseCache";
+import {
+  checkRateLimit,
+  getClientIp,
+  getRateLimitHeaders,
+  isAuthorizedOperatorRequest,
+} from "@/lib/security";
 import { deleteSubscription } from "@/lib/subscription";
-
-webpush.setVapidDetails(
-  "mailto:your-email@example.com",
-  process.env.NEXT_PUBLIC_VAPID_KEY as string,
-  process.env.PRIVATE_VAPID_KEY as string
-);
+import { NextRequest, NextResponse } from "next/server";
+import webpush from "web-push";
+import { z } from "zod";
 
 export const revalidate = 0;
 
+const WEATHER_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const weatherQuerySchema = z.object({
+  latitude: z.coerce.number().min(-90).max(90),
+  longitude: z.coerce.number().min(-180).max(180),
+});
+
+let vapidConfigured = false;
+
+function configureWebPush() {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+  const privateKey = process.env.PRIVATE_VAPID_KEY;
+
+  if (!publicKey || !privateKey) {
+    throw new Error("Push notification keys are not configured.");
+  }
+
+  if (!vapidConfigured) {
+    webpush.setVapidDetails(
+      "mailto:security@codingterrace.com",
+      publicKey,
+      privateKey
+    );
+    vapidConfigured = true;
+  }
+}
+
 async function fetchWithRetry(
   url: string,
-  options: RequestInit,
-  retries = 10,
-  delay = 10000
-): Promise<Response> {
+  retries = 2,
+  delayMs = 1000
+): Promise<string> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Cache-Control": "no-cache" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(5000),
+      });
+
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        throw new Error(`Unexpected status ${response.status}`);
       }
-      return response;
+
+      return await response.text();
     } catch (error) {
-      console.error(`Attempt ${attempt} failed:`, error);
       if (attempt === retries) {
-        throw new Error(`All ${retries} retries failed`);
+        throw error;
       }
-      await new Promise((resolve) => setTimeout(resolve, delay));
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
-  throw new Error("Unreachable code");
+
+  throw new Error("Unreachable");
+}
+
+function normalizeCoordinate(value: number) {
+  return value.toFixed(2);
+}
+
+async function getWeatherMessage(
+  pythonApiUrl: string,
+  latitude: number,
+  longitude: number
+) {
+  const normalizedLatitude = normalizeCoordinate(latitude);
+  const normalizedLongitude = normalizeCoordinate(longitude);
+
+  return getOrSetResponseCache(
+    `weather:${normalizedLatitude}:${normalizedLongitude}`,
+    WEATHER_CACHE_TTL_MS,
+    () =>
+      fetchWithRetry(
+        `${pythonApiUrl}/weather?latitude=${normalizedLatitude}&longitude=${normalizedLongitude}`
+      )
+  );
+}
+
+function getWeatherTitle(message: string) {
+  if (message.includes("비")) {
+    return "오늘의 비 소식";
+  }
+
+  if (message.includes("눈")) {
+    return "오늘의 눈 소식";
+  }
+
+  return "오늘의 날씨";
 }
 
 export async function GET(req: NextRequest) {
+  const pythonApiUrl = process.env.PYTHON_API_SERVER_URL;
+
+  if (!pythonApiUrl) {
+    return NextResponse.json(
+      { error: "Python API is not configured." },
+      { status: 500 }
+    );
+  }
+
   try {
-    const pythonApiUrl = process.env.PYTHON_API_SERVER_URL;
-    if (!pythonApiUrl) {
+    const { searchParams } = new URL(req.url);
+    const hasCoordinates =
+      searchParams.has("latitude") && searchParams.has("longitude");
+
+    if (hasCoordinates) {
+      const rateLimit = checkRateLimit(`weather-fetch:${getClientIp(req)}`, {
+        limit: 20,
+        windowMs: 10 * 60 * 1000,
+      });
+
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          { error: "Too many weather requests." },
+          {
+            status: 429,
+            headers: getRateLimitHeaders(rateLimit.retryAfterSeconds),
+          }
+        );
+      }
+
+      const parsed = weatherQuerySchema.safeParse({
+        latitude: searchParams.get("latitude"),
+        longitude: searchParams.get("longitude"),
+      });
+
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Invalid coordinates." },
+          { status: 400 }
+        );
+      }
+
+      const { value: message, hit } = await getWeatherMessage(
+        pythonApiUrl,
+        parsed.data.latitude,
+        parsed.data.longitude
+      );
+
       return NextResponse.json(
-        { error: "PYTHON_API_SERVER_URL not set" },
-        { status: 500 }
+        { message: message || "Unable to load the weather data." },
+        {
+          headers: {
+            "Cache-Control": "no-store",
+            "X-Data-Cache": hit ? "HIT" : "MISS",
+          },
+        }
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const latitude = searchParams.get("latitude");
-    const longitude = searchParams.get("longitude");
+    const rateLimit = checkRateLimit(`weather-broadcast:${getClientIp(req)}`, {
+      limit: 5,
+      windowMs: 10 * 60 * 1000,
+    });
 
-    if (latitude && longitude) {
-      const response = await fetchWithRetry(
-        `${pythonApiUrl}/weather?latitude=${latitude}&longitude=${longitude}`,
-        { method: "GET", headers: { "Cache-Control": "no-cache" } },
-        10,
-        10000
-      );
-      const data = await response.text();
-      const weatherMessage = data || "날씨 데이터를 가져올 수 없습니다.";
+    if (!rateLimit.allowed) {
       return NextResponse.json(
-        { message: weatherMessage },
-        { headers: { "Cache-Control": "no-store" } }
-      );
-    } else {
-      const subscriptions = await db.subscription.findMany({
-        where: { type: "weather" },
-      });
-      if (subscriptions.length === 0) {
-        return NextResponse.json({
-          message: "No weather subscriptions found.",
-        });
-      }
-      const baseUrl = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
-      const notificationPromises = subscriptions.map(async (subscription) => {
-        let { latitude, longitude } = subscription;
-        if (
-          latitude === null ||
-          longitude === null ||
-          latitude === undefined ||
-          longitude === undefined
-        ) {
-          latitude = 37.5665;
-          longitude = 126.978;
+        { error: "Too many weather broadcast requests." },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimit.retryAfterSeconds),
         }
+      );
+    }
+
+    if (!(await isAuthorizedOperatorRequest(req, { allowCron: true }))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    configureWebPush();
+
+    const subscriptions = await db.subscription.findMany({
+      where: { type: "weather" },
+      select: {
+        id: true,
+        endpoint: true,
+        p256dh: true,
+        auth: true,
+        type: true,
+        postId: true,
+        commentId: true,
+        latitude: true,
+        longitude: true,
+      },
+    });
+
+    if (subscriptions.length === 0) {
+      return NextResponse.json({
+        message: "No weather subscriptions found.",
+      });
+    }
+
+    const weatherPageUrl = new URL("/weather", req.nextUrl.origin).toString();
+
+    await Promise.all(
+      subscriptions.map(async (subscription) => {
+        const latitude = subscription.latitude ?? 37.5665;
+        const longitude = subscription.longitude ?? 126.978;
+
         try {
-          const response = await fetchWithRetry(
-            `${pythonApiUrl}/weather?latitude=${latitude}&longitude=${longitude}`,
-            { method: "GET", headers: { "Cache-Control": "no-cache" } },
-            10,
-            10000
+          const { value: message } = await getWeatherMessage(
+            pythonApiUrl,
+            latitude,
+            longitude
           );
-          const data = await response.text();
-          const weatherMessage = data || "날씨 데이터를 가져올 수 없습니다.";
-          const weatherTitle = weatherMessage.includes("비")
-            ? "오늘의 날씨 🌧️"
-            : weatherMessage.includes("눈")
-            ? "오늘의 날씨 ❄️"
-            : "오늘의 날씨 ☀️";
-          const pushSubscription = {
-            endpoint: subscription.endpoint,
-            keys: {
-              p256dh: subscription.p256dh,
-              auth: subscription.auth,
-            },
-          };
+
           const payload = JSON.stringify({
-            title: weatherTitle,
-            message: weatherMessage,
-            url: baseUrl + "/weather",
+            title: getWeatherTitle(message),
+            message: message || "Unable to load the weather data.",
+            url: weatherPageUrl,
           });
-          await webpush.sendNotification(pushSubscription, payload);
+
+          await webpush.sendNotification(
+            {
+              endpoint: subscription.endpoint,
+              keys: {
+                p256dh: subscription.p256dh,
+                auth: subscription.auth,
+              },
+            },
+            payload
+          );
         } catch (error: any) {
           console.error(
-            `Failed to process subscription ${subscription.id}:`,
+            `Failed to process weather subscription ${subscription.id}:`,
             error
           );
-          if (error.statusCode === 410 || error.statusCode === 404) {
-            console.log(
-              "Subscription expired or invalid, removing from database:",
-              subscription.endpoint
-            );
+
+          if (error?.statusCode === 404 || error?.statusCode === 410) {
             await deleteSubscription(
               subscription.endpoint,
               subscription.type,
-              subscription.postId
+              subscription.postId,
+              subscription.commentId
             );
           }
         }
-      });
-      await Promise.all(notificationPromises);
-      return NextResponse.json(
-        { message: "날씨 알림 발송 완료" },
-        { headers: { "Cache-Control": "no-store" } }
-      );
-    }
-  } catch (error: any) {
-    console.error("날씨 알림 발송 중 에러:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+      })
+    );
+
+    return NextResponse.json(
+      { message: "Weather notifications sent." },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    console.error("Weather route failed:", error);
+    return NextResponse.json(
+      { error: "Weather request failed." },
+      { status: 500 }
+    );
   }
 }

@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { categoryToName } from "@/lib/utils";
-import { customSchema } from "@/lib/customSchema";
 import { getIsOwner } from "@/lib/auth";
+import { getSafeEmbedSrc } from "@/lib/contentSecurity";
+import { customSchema } from "@/lib/customSchema";
 import { deletePost, getPost } from "@/lib/post";
 import { remarkYoutubeEmbed } from "@/lib/remarkYoutubeEmbed";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeSanitize from "rehype-sanitize";
-import rehypeHighlight from "rehype-highlight";
-import remarkBreaks from "remark-breaks";
-import rehypeRaw from "rehype-raw";
+import { categoryToName } from "@/lib/utils";
 import CommentSection from "./commentSection";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 import "highlight.js/styles/atom-one-dark.css";
 
 interface PostViewProps {
@@ -26,56 +27,78 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
   const [isOwner, setIsOwner] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       const postIdx = Number(idx);
-      if (isNaN(postIdx)) {
-        window.alert("존재하지 않는 게시물입니다.");
+
+      if (Number.isNaN(postIdx)) {
+        window.alert("The requested post does not exist.");
         window.location.href = basePath;
         return;
       }
+
       const fetchedPost = await getPost(postIdx, category);
+
       if (!fetchedPost) {
-        window.alert("존재하지 않는 게시물입니다.");
+        window.alert("The requested post does not exist.");
         window.location.href = basePath;
         return;
       }
+
       setPost(fetchedPost);
-      const ownerStatus = await getIsOwner(fetchedPost.user?.idx!);
-      setIsOwner(ownerStatus);
+      setIsOwner(
+        fetchedPost.user?.idx ? await getIsOwner(fetchedPost.user.idx) : false
+      );
     };
+
     fetchData();
   }, [idx, category, basePath]);
+
   if (!post) {
     return null;
   }
+
   const handleImageClick = (src: string) => {
     setSelectedImage(src);
   };
+
   const handleEdit = async () => {
     window.location.href = `${basePath}/${post.idx}/edit`;
   };
+
   const handleDelete = async () => {
-    if (post.password !== null && post.password !== "") {
-      const password = window.prompt("게시글 비밀번호를 입력해 주세요.");
-      if (password === post.password) {
-        setIsDeleting(true);
-        await deletePost(post.idx);
-        window.alert("게시글이 삭제되었습니다.");
-        window.location.href = basePath;
+    try {
+      setIsDeleting(true);
+
+      if (post.hasPassword) {
+        const password = window.prompt("Enter the post password.");
+
+        if (!password) {
+          setIsDeleting(false);
+          return;
+        }
+
+        await deletePost(post.idx, password);
       } else {
-        window.alert("비밀번호가 올바르지 않습니다.");
-      }
-    } else {
-      const confirmed = window.confirm("정말로 이 게시물을 삭제할까요?");
-      if (confirmed) {
-        setIsDeleting(true);
+        const confirmed = window.confirm("Delete this post?");
+
+        if (!confirmed) {
+          setIsDeleting(false);
+          return;
+        }
+
         await deletePost(post.idx);
-        window.alert("게시글이 삭제되었습니다.");
-        window.location.href = basePath;
       }
+
+      window.alert("The post was deleted.");
+      window.location.href = basePath;
+    } catch (error: any) {
+      window.alert(error?.message || "Failed to delete the post.");
+      setIsDeleting(false);
     }
   };
+
   return (
     <div className="flex flex-col items-center px-5 pt-0 pb-20">
       <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 pt-8">
@@ -94,8 +117,10 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                 {post.user?.avatar && (
                   <img
                     src={post.user.avatar.replace("/public", "/avatar")}
-                    alt={`${post.user.nickname}의 프로필 이미지`}
+                    alt={`${post.user.nickname} profile image`}
                     className="w-7 h-7 rounded-full object-cover"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
                   />
                 )}
                 <span>{post.user?.nickname ?? post.nickname}</span>
@@ -105,7 +130,6 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
               ) : null}
             </div>
             <span className="text-sm text-gray-600">
-              작성일:{" "}
               {new Date(post.created_at).toLocaleString("ko-KR", {
                 year: "2-digit",
                 month: "2-digit",
@@ -127,21 +151,54 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                 rehypeHighlight,
               ]}
               components={{
+                a: ({ node, href, children, ...props }) => {
+                  const isExternal =
+                    typeof href === "string" &&
+                    /^https?:\/\//i.test(href);
+
+                  return (
+                    <a
+                      {...props}
+                      href={href}
+                      target={isExternal ? "_blank" : props.target}
+                      rel={
+                        isExternal ? "noopener noreferrer nofollow" : props.rel
+                      }
+                    >
+                      {children}
+                    </a>
+                  );
+                },
                 img: ({ node, ...props }) => (
                   <img
                     {...props}
                     className="max-w-full h-auto mx-auto cursor-pointer mt-4 -mb-2"
                     alt={props.alt}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
                     onClick={() => handleImageClick(props.src!)}
                   />
                 ),
-                iframe: ({ node, ...props }) => (
-                  <iframe
-                    {...props}
-                    className="mx-auto block mt-4 -mb-2"
-                    title={props.title}
-                  />
-                ),
+                iframe: ({ node, src, title, allow, ...props }) => {
+                  const safeSrc = getSafeEmbedSrc(src);
+
+                  if (!safeSrc) {
+                    return null;
+                  }
+
+                  return (
+                    <iframe
+                      {...props}
+                      src={safeSrc}
+                      allow={allow}
+                      className="mx-auto block mt-4 -mb-2"
+                      title={title || "Embedded video"}
+                      loading="lazy"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      sandbox="allow-same-origin allow-scripts allow-popups"
+                    />
+                  );
+                },
               }}
               className="break-all"
             >
@@ -160,13 +217,14 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                 </button>
                 <img
                   src={selectedImage}
-                  alt="Modal Image"
+                  alt="Post image"
                   className="max-h-full max-w-full"
+                  referrerPolicy="no-referrer"
                 />
               </div>
             )}
           </div>
-          {(isOwner || (post.password !== null && post.password !== "")) && (
+          {(isOwner || post.hasPassword) && (
             <div className="flex justify-end mt-4 gap-2">
               <button
                 onClick={handleEdit}
@@ -177,7 +235,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                     : "bg-green-400 text-white hover:bg-green-500"
                 }`}
               >
-                수정
+                Edit
               </button>
               <button
                 onClick={handleDelete}
@@ -188,7 +246,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                     : "bg-red-400 text-white hover:bg-red-500"
                 }`}
               >
-                {isDeleting ? "삭제 중" : "삭제"}
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           )}

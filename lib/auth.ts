@@ -1,7 +1,9 @@
 "use server";
 
 import db from "./db";
+import { publicUserSelect } from "./selects";
 import getSession from "./session";
+import { isUserOperatorSession } from "./security";
 
 export async function getUser() {
   const session = await getSession();
@@ -12,22 +14,12 @@ export async function getUser() {
     where: {
       idx: session.idx,
     },
+    select: publicUserSelect,
   });
 }
 
 export async function isUserOperator() {
-  const session = await getSession();
-  if (!session?.idx) {
-    return false;
-  }
-  const user = await db.user.findUnique({
-    where: { idx: session.idx },
-  });
-  if (!user) {
-    return false;
-  }
-  const operators = process.env.OPERATORS?.split(",") || [];
-  return operators.includes(user.id);
+  return isUserOperatorSession();
 }
 
 export async function getIsOwner(userIdx: number) {

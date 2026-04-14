@@ -8,7 +8,7 @@ export default function EditPostPage({ params }: { params: { idx: string } }) {
       mode="edit"
       idx={params.idx}
       category="board"
-      basePath={`/board/${params.idx}`}
+      basePath="/board"
     />
   );
 }

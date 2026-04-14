@@ -1,14 +1,22 @@
-"use client";
-
 import PostForm from "@/components/postForm";
+import { isUserOperator } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default function EditPostPage({ params }: { params: { idx: string } }) {
+export default async function EditPostPage({
+  params,
+}: {
+  params: { idx: string };
+}) {
+  if (!(await isUserOperator())) {
+    redirect(`/technote/${params.idx}`);
+  }
+
   return (
     <PostForm
       mode="edit"
       idx={params.idx}
       category="technote"
-      basePath={`/technote/${params.idx}`}
+      basePath="/technote"
     />
   );
 }

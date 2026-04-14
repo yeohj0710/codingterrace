@@ -1,7 +1,8 @@
+import { normalizeInternalUrl } from "@/lib/siteUrl";
+
 export function openExternalInKakao(path: string) {
   const userAgent = navigator.userAgent.toLowerCase();
-  const baseUrl = process.env.SITE_URL || "https://codingterrace.com";
-  const targetUrl = `${baseUrl}${path}`;
+  const targetUrl = normalizeInternalUrl(path);
   if (userAgent.includes("kakaotalk")) {
     try {
       window.location.href =

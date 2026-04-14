@@ -1,75 +1,64 @@
-import db from "@/lib/db";
-import { deleteSubscription } from "@/lib/subscription";
-import { stripMarkdown } from "@/lib/utils";
+import { sendPushNotification } from "@/lib/push";
+import {
+  checkRateLimit,
+  getClientIp,
+  isAuthorizedOperatorRequest,
+} from "@/lib/security";
 import { NextResponse } from "next/server";
-import webpush from "web-push";
+import { z } from "zod";
 
-webpush.setVapidDetails(
-  "mailto:your-email@example.com",
-  process.env.NEXT_PUBLIC_VAPID_KEY as string,
-  process.env.PRIVATE_VAPID_KEY as string
-);
+const notificationSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  message: z.string().trim().min(1).max(500),
+  url: z.string().trim().min(1).max(2048),
+  type: z.enum(["main", "board", "technote"]),
+  postId: z.number().int().positive().nullable().optional(),
+});
 
 export async function POST(request: Request) {
+  const rateLimit = checkRateLimit(`notify:${getClientIp(request)}`, {
+    limit: 10,
+    windowMs: 60 * 1000,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many notification requests." },
+      { status: 429 }
+    );
+  }
+
+  if (!(await isAuthorizedOperatorRequest(request))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
-    const { title, message, url, type, postId } = await request.json();
-    const strippedMessage = stripMarkdown(message);
-    if (!type) {
+    const body = await request.json();
+    const parsed = notificationSchema.safeParse({
+      ...body,
+      postId: body.postId ?? null,
+    });
+
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Request에서 category type이 누락되었습니다." },
+        { error: "Invalid notification payload." },
         { status: 400 }
       );
     }
-    const subscriptions = await db.subscription.findMany({
-      where: { type: type, postId: postId || null },
+
+    await sendPushNotification({
+      type: parsed.data.type,
+      postId: parsed.data.postId ?? null,
+      title: parsed.data.title,
+      message: parsed.data.message,
+      url: parsed.data.url,
     });
-    const payload = JSON.stringify({
-      title,
-      message: strippedMessage,
-      url,
-    });
-    const notificationPromises = subscriptions.map(async (subscription) => {
-      const { endpoint, p256dh, auth } = subscription;
-      const pushSubscription = {
-        endpoint,
-        keys: {
-          p256dh,
-          auth,
-        },
-      };
-      try {
-        await webpush.sendNotification(pushSubscription, payload);
-      } catch (error: any) {
-        if (error.statusCode === 410) {
-          console.log(
-            "다음의 subscription이 만료되었거나 해지되어 삭제합니다:",
-            subscription.endpoint
-          );
-          await deleteSubscription(
-            subscription.endpoint,
-            subscription.type,
-            postId
-          );
-        } else {
-          console.error(
-            "다음의 endpoint로 알림을 발송하는 데 실패하였습니다:",
-            subscription.endpoint,
-            error
-          );
-        }
-      }
-    });
-    await Promise.all(notificationPromises);
-    return new Response(
-      JSON.stringify({ message: "알림 발송에 성공하였습니다." }),
-      {
-        status: 200,
-      }
-    );
+
+    return NextResponse.json({ message: "Notification sent." });
   } catch (error) {
-    console.error("알림 발송 중 에러가 발생하였습니다:", error);
+    console.error("Failed to send notification:", error);
     return NextResponse.json(
-      { error: "알림 발송 중 에러가 발생하였습니다." },
+      { error: "Failed to send notification." },
       { status: 500 }
     );
   }

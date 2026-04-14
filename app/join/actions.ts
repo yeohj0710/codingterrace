@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ID_MIN_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/constants";
 import db from "@/lib/db";
 import bcrypt from "bcrypt";
+import { checkRateLimit, getRequestRateLimitKey } from "@/lib/security";
 import { redirect } from "next/navigation";
 import getSession from "@/lib/session";
 
@@ -74,6 +75,22 @@ const formSchema = z
   });
 
 export async function join(prevState: any, formData: FormData) {
+  const rateLimit = checkRateLimit(getRequestRateLimitKey("join"), {
+    limit: 5,
+    windowMs: 10 * 60 * 1000,
+  });
+
+  if (!rateLimit.allowed) {
+    return {
+      fieldErrors: {
+        id: ["Too many sign-up attempts. Please try again later."],
+        password: [],
+        confirm_password: [],
+        nickname: [],
+      },
+    };
+  }
+
   const data = {
     id: formData.get("id"),
     password: formData.get("password"),

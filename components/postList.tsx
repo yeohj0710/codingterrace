@@ -23,12 +23,8 @@ interface Post {
   };
   user: {
     idx: number;
-    id: string;
-    password: string;
     nickname: string;
     avatar: string | null;
-    created_at: Date;
-    updated_at: Date;
   } | null;
 }
 

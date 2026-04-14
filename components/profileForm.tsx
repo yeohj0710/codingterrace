@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { validateImageFile } from "@/lib/imageValidation";
 import { getUploadUrl } from "@/lib/upload";
 
 export default function ProfileForm({ user, updateProfile, logOut }: any) {
@@ -21,6 +22,12 @@ export default function ProfileForm({ user, updateProfile, logOut }: any) {
     const { files } = event.target;
     if (!files || files.length === 0) return;
     const file = files[0];
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      alert(validationError);
+      event.target.value = "";
+      return;
+    }
     setIsUploadingImage(true);
     setIsImageUpdating(true);
     try {

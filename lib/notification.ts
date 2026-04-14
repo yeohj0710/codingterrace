@@ -1,4 +1,3 @@
-import db from "./db";
 import { categoryToName } from "./utils";
 
 export const requestNotificationPermission = async (showAlert: () => void) => {
@@ -186,46 +185,6 @@ export const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
   return outputArray;
 };
 
-export async function sendNotificationToPostAuthor(
-  postId: number,
-  title: string,
-  message: string,
-  url: string
-) {
-  await fetch("/api/notify-post-author", {
-    method: "POST",
-    body: JSON.stringify({
-      postId,
-      title,
-      message,
-      url,
-    }),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-}
-
-export async function sendNotificationToCommentAuthor(
-  commentId: number,
-  title: string,
-  message: string,
-  url: string
-) {
-  await fetch("/api/notify-comment-author", {
-    method: "POST",
-    body: JSON.stringify({
-      commentId,
-      title,
-      message,
-      url,
-    }),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-}
-
 export async function saveSubscription(subscription: any) {
   try {
     const response = await fetch("/api/save-subscription", {
@@ -241,10 +200,4 @@ export async function saveSubscription(subscription: any) {
   } catch (error) {
     console.error("Error saving subscription:", error);
   }
-}
-
-export async function getAllSubscriptionsByType(type: string) {
-  return await db.subscription.findMany({
-    where: { type },
-  });
 }

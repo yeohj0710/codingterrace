@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getUser } from "@/lib/auth";
-import { getComments, addComment, deleteComment } from "@/lib/comment";
+import { addComment, deleteComment, getComments } from "@/lib/comment";
 import { handleImageChange } from "@/lib/handleImageChange";
 import { handlePaste } from "@/lib/handlePaste";
-import Comment from "./comment";
 import {
   saveSubscription,
-  sendNotificationToPostAuthor,
   urlBase64ToUint8Array,
 } from "@/lib/notification";
 import CommentTree from "./commentTree";
-import { stripMarkdown } from "@/lib/utils";
 
 interface CommentSectionProps {
   postIdx: number;
@@ -28,33 +25,41 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const contentRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await getUser();
       setUser(userData);
     };
+
     const fetchComments = async () => {
       setIsLoading(true);
       const commentsData = await getComments(postIdx);
       setComments(commentsData);
       setIsLoading(false);
     };
+
     fetchUser();
     fetchComments();
   }, [postIdx]);
+
   const refreshComments = async () => {
     const commentsData = await getComments(postIdx);
     setComments(commentsData);
   };
+
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
   };
+
   const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNickname(e.target.value);
   };
+
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
   };
+
   const onImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     handleImageChange(
       event,
@@ -64,6 +69,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
       contentRef
     );
   };
+
   const handlePasteEvent = async (
     event: React.ClipboardEvent<HTMLTextAreaElement>
   ) => {
@@ -75,96 +81,97 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
       contentRef
     );
   };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     if (isUploadingImages) {
-      alert("이미지 업로드 중입니다. 잠시만 기다려 주세요.");
+      alert("Images are still uploading. Please wait.");
       return;
     }
+
     setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append("postIdx", String(postIdx));
-    formData.append("content", content);
-    if (!user) {
-      formData.append("nickname", nickname);
-      formData.append("password", password);
-    }
-    const newComment = await addComment(formData);
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        const registration = await navigator.serviceWorker.ready;
-        let subscription = await registration.pushManager.getSubscription();
-        if (!subscription) {
-          const convertedVapidKey = urlBase64ToUint8Array(
-            process.env.NEXT_PUBLIC_VAPID_KEY as string
-          );
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: convertedVapidKey,
-          });
-        }
-        const subscriptionData = {
-          ...subscription.toJSON(),
-          type: "commentAuthor",
-          postId: null,
-          commentId: newComment.idx,
-        };
-        await saveSubscription(subscriptionData);
-        console.log(
-          "댓글에 대한 subscription이 등록되었습니다:",
-          subscriptionData
-        );
-      } else {
-        console.warn("알림 권한이 필요합니다.");
-      }
-    }
-    setContent("");
-    setIsSubmitting(false);
-    await refreshComments();
+
     try {
-      const notificationTitle = "내 글에 댓글이 달렸어요.";
-      const maxLength = 50;
-      const strippedContent = stripMarkdown(content);
-      const truncatedContent =
-        strippedContent.length > maxLength
-          ? strippedContent.slice(0, maxLength) + "..."
-          : strippedContent;
-      const notificationMessage = truncatedContent;
-      const postUrl = window.location.href;
-      await sendNotificationToPostAuthor(
-        postIdx,
-        notificationTitle,
-        notificationMessage,
-        postUrl
-      );
-    } catch (error) {
-      console.error(`알림 발송 중 에러가 발생하였습니다: ${error}`);
-    }
-    setContent("");
-    setIsSubmitting(false);
-    const commentsData = await getComments(postIdx);
-    setComments(commentsData);
-  };
-  const handleDelete = async (commentIdx: number, commentPassword?: string) => {
-    if (commentPassword) {
-      const inputPassword = window.prompt("댓글 비밀번호를 입력해 주세요.");
-      if (inputPassword !== commentPassword) {
-        alert("비밀번호가 올바르지 않습니다.");
-        return;
+      const formData = new FormData();
+      formData.append("postIdx", String(postIdx));
+      formData.append("content", content);
+
+      if (!user) {
+        formData.append("nickname", nickname);
+        formData.append("password", password);
       }
+
+      const newComment = await addComment(formData);
+
+      if ("serviceWorker" in navigator && "PushManager" in window) {
+        const permission = await Notification.requestPermission();
+
+        if (permission === "granted") {
+          const registration = await navigator.serviceWorker.ready;
+          let subscription = await registration.pushManager.getSubscription();
+
+          if (!subscription) {
+            const convertedVapidKey = urlBase64ToUint8Array(
+              process.env.NEXT_PUBLIC_VAPID_KEY as string
+            );
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedVapidKey,
+            });
+          }
+
+          const subscriptionData = {
+            ...subscription.toJSON(),
+            type: "commentAuthor",
+            postId: null,
+            commentId: newComment.idx,
+          };
+          await saveSubscription(subscriptionData);
+        }
+      }
+
+      setContent("");
+      setNickname("");
+      setPassword("");
+      await refreshComments();
+    } catch (error: any) {
+      alert(error?.message || "Failed to create the comment.");
+    } finally {
+      setIsSubmitting(false);
     }
-    const isConfirmed = window.confirm("정말로 댓글을 삭제할까요?");
+  };
+
+  const handleDelete = async (
+    commentIdx: number,
+    requiresPassword: boolean
+  ) => {
+    const suppliedPassword = requiresPassword
+      ? window.prompt("Enter the comment password.")
+      : null;
+
+    if (requiresPassword && !suppliedPassword) {
+      return;
+    }
+
+    const isConfirmed = window.confirm("Delete this comment?");
+
     if (!isConfirmed) {
       return;
     }
-    await deleteComment(commentIdx, commentPassword);
-    const commentsData = await getComments(postIdx);
-    setComments(commentsData);
+
+    try {
+      await deleteComment(commentIdx, suppliedPassword);
+      const commentsData = await getComments(postIdx);
+      setComments(commentsData);
+    } catch (error: any) {
+      alert(error?.message || "Failed to delete the comment.");
+    }
   };
+
   return (
     <div className="mt-8">
-      <h2 className="text-lg font-bold mb-4">댓글 {comments.length}개</h2>
+      <h2 className="text-lg font-bold mb-4">Comments {comments.length}</h2>
       {isLoading ? (
         <div className="animate-pulse space-y-4">
           {[...Array(1)].map((_, index) => (
@@ -199,7 +206,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           ))
       ) : (
         <p className="text-gray-400 text-center mt-10 mb-16">
-          댓글이 없습니다. 첫 번째 댓글을 남겨보세요!
+          No comments yet. Be the first to start the conversation.
         </p>
       )}
       <form onSubmit={handleSubmit} className="mt-2 mb-6">
@@ -208,7 +215,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
             <input
               type="text"
               name="nickname"
-              placeholder="닉네임 (선택)"
+              placeholder="Nickname"
               value={nickname}
               onChange={handleNicknameChange}
               className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
@@ -216,7 +223,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
             <input
               type="password"
               name="password"
-              placeholder="비밀번호 (선택)"
+              placeholder="Password"
               value={password}
               onChange={handlePasswordChange}
               className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
@@ -228,7 +235,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           <textarea
             ref={contentRef}
             name="content"
-            placeholder="댓글을 입력해 주세요."
+            placeholder="Write a comment"
             required
             value={content}
             onChange={handleContentChange}
@@ -241,7 +248,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
             <div className="absolute inset-0 flex justify-center items-center bg-opacity-75 bg-white">
               <div className="w-5 h-5 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
               <span className="ml-3 text-lg text-gray-700">
-                이미지 업로드 중...
+                Uploading image...
               </span>
             </div>
           )}
@@ -252,7 +259,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
               htmlFor="comment-image"
               className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
             >
-              이미지 선택
+              Choose image
             </label>
             <input
               onChange={onImageChange}
@@ -275,11 +282,11 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           >
             {isSubmitting ? (
               <>
-                등록 중
+                Posting...
                 <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
               </>
             ) : (
-              "등록"
+              "Post"
             )}
           </button>
         </div>

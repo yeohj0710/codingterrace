@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isUserOperator } from "@/lib/auth";
 import {
   requestNotificationPermission,
   toggleSubscription,
@@ -16,6 +17,7 @@ export default function Weather() {
   const [isWakingUp, setIsWakingUp] = useState(false);
   const [showSendWeatherButton, setShowSendWeatherButton] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isOperator, setIsOperator] = useState(false);
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
       if (!("serviceWorker" in navigator)) {
@@ -52,6 +54,7 @@ export default function Weather() {
       }
     };
     checkSubscriptionStatus();
+    isUserOperator().then(setIsOperator).catch(() => setIsOperator(false));
   }, []);
   const handleNotificationToggle = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -274,7 +277,7 @@ export default function Weather() {
           {error}
         </div>
       )}
-      {showSendWeatherButton && (
+      {showSendWeatherButton && isOperator && (
         <div className="mt-2 px-4 py-3 border border-gray-200 rounded-lg shadow-md bg-gray-50">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-500">
