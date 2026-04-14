@@ -22,24 +22,16 @@ export default function NotificationPanel() {
   useEffect(() => {
     const initializeNotification = async () => {
       if (!("serviceWorker" in navigator)) {
-        console.error("Service Worker is not supported in this browser.");
+        console.error("이 브라우저는 서비스 워커를 지원하지 않습니다.");
         return;
       }
 
       try {
         await navigator.serviceWorker.register("/sw.js");
         await navigator.serviceWorker.ready;
-        const permissionGranted = await requestNotificationPermission(() => {
-          setIsAlertVisible(true);
-        });
-
-        if (!permissionGranted) {
-          return;
-        }
-
         await checkNotificationStatus();
       } catch (error) {
-        console.error("Failed to initialize the Service Worker:", error);
+        console.error("서비스 워커를 준비하지 못했습니다:", error);
       }
     };
 
@@ -79,13 +71,13 @@ export default function NotificationPanel() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to check the subscription state.");
+        throw new Error("구독 상태를 확인하지 못했습니다.");
       }
 
       const result = await response.json();
       setIsSubscribed(result.exists);
     } catch (error) {
-      console.error("Failed to check the subscription state:", error);
+      console.error("구독 상태를 확인하지 못했습니다:", error);
       setIsSubscribed(false);
     }
   };
@@ -100,29 +92,34 @@ export default function NotificationPanel() {
 
     try {
       const permissionGranted = await requestNotificationPermission(() => {
-        setIsProcessing(false);
-        setIsSubscribed(false);
         setIsAlertVisible(true);
       });
 
       if (!permissionGranted) {
-        setIsProcessing(false);
-        setIsAlertVisible(true);
         return;
       }
 
+      setIsAlertVisible(false);
       await toggleSubscription("main", () => {
         setIsAlertVisible(true);
       });
       await checkNotificationStatus();
     } catch (error) {
-      console.error("Failed to toggle notifications:", error);
+      console.error("알림 설정을 변경하지 못했습니다:", error);
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleNotificationSend = async () => {
+    const trimmedTitle = title.trim();
+    const trimmedMessage = message.trim();
+
+    if (!trimmedTitle || !trimmedMessage) {
+      window.alert("알림 제목과 내용을 모두 입력해 주세요.");
+      return;
+    }
+
     setIsSending(true);
 
     try {
@@ -132,83 +129,112 @@ export default function NotificationPanel() {
         await registration.update();
       }
 
-      await sendNotification(title, message, "main", "https://codingterrace.com");
-      window.alert("The notification was sent.");
+      await sendNotification(
+        trimmedTitle,
+        trimmedMessage,
+        "main",
+        "https://codingterrace.com"
+      );
+      window.alert("알림을 전송했습니다.");
+      setTitle("");
+      setMessage("");
     } catch (error) {
-      console.error("Failed to send the notification:", error);
+      console.error("알림 전송에 실패했습니다:", error);
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <>
-      {isAlertVisible && (
-        <CustomAlert onClose={() => setIsAlertVisible(false)} />
-      )}
-      <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 bg-white p-5 gap-2 relative sm:border sm:border-gray-200 sm:rounded-lg sm:shadow-lg">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-lg font-bold">Send a Site Notification</span>
-          <button
-            onClick={handleNotificationToggle}
-            className="text-gray-500"
-            disabled={isProcessing}
-          >
-            {isSubscribed === null ? (
-              <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
-            ) : isProcessing ? (
-              <div className="w-6 h-6 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
-            ) : isSubscribed ? (
-              <BellIcon className="w-6 h-6 text-green-500" />
-            ) : (
-              <BellSlashIcon className="w-6 h-6 text-red-500" />
-            )}
-          </button>
-        </div>
-        <span className="text-sm">
-          Site notifications keep working even after you close the tab.
-        </span>
-        {isOperator ? (
-          <>
-            <span className="text-sm mb-3">
-              Operator accounts can send a broadcast to all subscribed users.
+    <div className="flex flex-col w-full gap-3 sm:w-[640px] xl:w-1/2 rounded-md border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold text-slate-900">
+              사이트 알림
             </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                isSubscribed
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              {isSubscribed ? "알림 켜짐" : "알림 꺼짐"}
+            </span>
+          </div>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            사이트를 닫아도 새 글과 공지 알림을 계속 받아볼 수 있어요.
+          </p>
+        </div>
+
+        <button
+          onClick={handleNotificationToggle}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition hover:border-emerald-300 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isProcessing}
+          aria-label="사이트 알림 설정"
+        >
+          {isSubscribed === null || isProcessing ? (
+            <div className="h-5 w-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+          ) : isSubscribed ? (
+            <BellIcon className="h-5 w-5 text-emerald-500" />
+          ) : (
+            <BellSlashIcon className="h-5 w-5 text-rose-400" />
+          )}
+        </button>
+      </div>
+
+      {isAlertVisible && <CustomAlert onClose={() => setIsAlertVisible(false)} />}
+
+      {!isAlertVisible && Notification.permission === "denied" ? (
+        <button
+          type="button"
+          onClick={() => setIsAlertVisible(true)}
+          className="self-start text-sm font-medium text-emerald-700 transition hover:text-emerald-800"
+        >
+          알림 허용 방법 보기
+        </button>
+      ) : null}
+
+      {isOperator ? (
+        <div className="border-t border-gray-100 pt-4">
+          <p className="mb-3 text-sm leading-6 text-slate-600">
+            운영자 계정은 알림을 구독한 전체 사용자에게 공지 알림을 보낼 수 있어요.
+          </p>
+          <div className="space-y-3">
             <input
               type="text"
-              placeholder="Notification title"
+              placeholder="알림 제목"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="p-2 border rounded-lg w-full"
+              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none transition focus:border-emerald-400"
             />
             <textarea
-              placeholder="Notification message"
+              placeholder="알림 내용"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="p-2 border rounded-lg w-full"
+              className="min-h-28 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none transition focus:border-emerald-400"
             />
-            <button
-              onClick={handleNotificationSend}
-              className={`flex items-center justify-center ${
-                isSending ? "bg-gray-400" : "bg-green-400 hover:bg-green-500"
-              } text-white p-2 rounded-lg`}
-              disabled={isSending}
-            >
-              {isSending ? (
-                <>
-                  Sending...
-                  <div className="w-4 h-4 ml-2 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
-                </>
-              ) : (
-                "Send Notification"
-              )}
-            </button>
-          </>
-        ) : (
-          <span className="text-sm mb-3 text-gray-500">
-            Broadcast sending is available only to operator accounts.
-          </span>
-        )}
-      </div>
-    </>
+            <div className="flex justify-end">
+              <button
+                onClick={handleNotificationSend}
+                className={`rounded-md px-4 py-2 text-sm font-medium text-white transition ${
+                  isSending
+                    ? "bg-gray-400"
+                    : "bg-emerald-500 hover:bg-emerald-600"
+                }`}
+                disabled={isSending}
+              >
+                {isSending ? "전송 중..." : "알림 보내기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm leading-6 text-slate-500">
+          전체 공지 알림 발송은 운영자 계정만 사용할 수 있어요.
+        </p>
+      )}
+    </div>
   );
 }

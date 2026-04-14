@@ -35,7 +35,7 @@ export async function handleImageChange(
 
     if (!success) {
       console.error("Failed to get upload URL:", error);
-      alert("Failed to get a secure image upload URL.");
+      alert("안전한 이미지 업로드 주소를 가져오지 못했습니다.");
       setIsUploadingImages(false);
       return;
     }
@@ -50,6 +50,7 @@ export async function handleImageChange(
     });
 
     if (!uploadResponse.ok) {
+      alert("이미지를 업로드하지 못했습니다.");
       setIsUploadingImages(false);
       return;
     }
@@ -59,6 +60,7 @@ export async function handleImageChange(
     const fileUrl = variants.find((url: string) => url.endsWith("/public"));
 
     if (!fileUrl) {
+      alert("업로드한 이미지 주소를 확인하지 못했습니다.");
       setIsUploadingImages(false);
       return;
     }

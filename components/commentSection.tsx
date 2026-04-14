@@ -86,7 +86,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
     e.preventDefault();
 
     if (isUploadingImages) {
-      alert("Images are still uploading. Please wait.");
+      alert("이미지 업로드가 아직 끝나지 않았어요. 잠시만 기다려 주세요.");
       return;
     }
 
@@ -136,7 +136,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
       setPassword("");
       await refreshComments();
     } catch (error: any) {
-      alert(error?.message || "Failed to create the comment.");
+      alert(error?.message || "댓글을 등록하지 못했습니다.");
     } finally {
       setIsSubmitting(false);
     }
@@ -147,14 +147,14 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
     requiresPassword: boolean
   ) => {
     const suppliedPassword = requiresPassword
-      ? window.prompt("Enter the comment password.")
+      ? window.prompt("댓글 비밀번호를 입력해 주세요.")
       : null;
 
     if (requiresPassword && !suppliedPassword) {
       return;
     }
 
-    const isConfirmed = window.confirm("Delete this comment?");
+    const isConfirmed = window.confirm("댓글을 삭제할까요?");
 
     if (!isConfirmed) {
       return;
@@ -165,13 +165,13 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
       const commentsData = await getComments(postIdx);
       setComments(commentsData);
     } catch (error: any) {
-      alert(error?.message || "Failed to delete the comment.");
+      alert(error?.message || "댓글을 삭제하지 못했습니다.");
     }
   };
 
   return (
     <div className="mt-8">
-      <h2 className="text-lg font-bold mb-4">Comments {comments.length}</h2>
+      <h2 className="text-lg font-bold mb-4">댓글 {comments.length}</h2>
       {isLoading ? (
         <div className="animate-pulse space-y-4">
           {[...Array(1)].map((_, index) => (
@@ -206,7 +206,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           ))
       ) : (
         <p className="text-gray-400 text-center mt-10 mb-16">
-          No comments yet. Be the first to start the conversation.
+          아직 댓글이 없어요. 가장 먼저 이야기를 시작해 보세요.
         </p>
       )}
       <form onSubmit={handleSubmit} className="mt-2 mb-6">
@@ -215,7 +215,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
             <input
               type="text"
               name="nickname"
-              placeholder="Nickname"
+              placeholder="닉네임"
               value={nickname}
               onChange={handleNicknameChange}
               className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
@@ -223,7 +223,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
             <input
               type="password"
               name="password"
-              placeholder="Password"
+              placeholder="비밀번호"
               value={password}
               onChange={handlePasswordChange}
               className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
@@ -235,7 +235,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           <textarea
             ref={contentRef}
             name="content"
-            placeholder="Write a comment"
+            placeholder="댓글을 남겨 보세요"
             required
             value={content}
             onChange={handleContentChange}
@@ -248,7 +248,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
             <div className="absolute inset-0 flex justify-center items-center bg-opacity-75 bg-white">
               <div className="w-5 h-5 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
               <span className="ml-3 text-lg text-gray-700">
-                Uploading image...
+                이미지 업로드 중...
               </span>
             </div>
           )}
@@ -259,7 +259,7 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
               htmlFor="comment-image"
               className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
             >
-              Choose image
+              이미지 선택
             </label>
             <input
               onChange={onImageChange}
@@ -282,11 +282,11 @@ export default function CommentSection({ postIdx }: CommentSectionProps) {
           >
             {isSubmitting ? (
               <>
-                Posting...
+                등록 중...
                 <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
               </>
             ) : (
-              "Post"
+              "등록"
             )}
           </button>
         </div>

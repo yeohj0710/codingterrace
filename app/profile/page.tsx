@@ -45,11 +45,11 @@ export default async function ProfilePage() {
     });
 
     if (!parsed.success) {
-      throw new Error("Please provide a valid nickname.");
+      throw new Error("올바른 닉네임을 입력해 주세요.");
     }
 
     if (!isAllowedAvatarUrl(parsed.data.avatarUrl)) {
-      throw new Error("Only approved image URLs can be used as avatars.");
+      throw new Error("허용된 이미지 주소만 프로필 사진으로 사용할 수 있습니다.");
     }
 
     try {
@@ -59,7 +59,7 @@ export default async function ProfilePage() {
       });
 
       if (existingUser && existingUser.idx !== session.idx) {
-        throw new Error("That nickname is already in use.");
+        throw new Error("이미 사용 중인 닉네임입니다.");
       }
 
       await db.user.update({
@@ -71,7 +71,7 @@ export default async function ProfilePage() {
       });
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      throw new Error(error?.message || "Failed to update the profile.");
+      throw new Error(error?.message || "프로필을 업데이트하지 못했습니다.");
     }
 
     redirect("/profile");

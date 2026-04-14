@@ -80,7 +80,7 @@ export default function Comment({
 
   const handleEdit = async () => {
     if (comment.hasPassword) {
-      const inputPassword = window.prompt("Enter the comment password.");
+      const inputPassword = window.prompt("댓글 비밀번호를 입력해 주세요.");
 
       if (!inputPassword) {
         return;
@@ -95,7 +95,7 @@ export default function Comment({
       }
 
       if (!isValidPassword) {
-        alert("Invalid comment password.");
+        alert("댓글 비밀번호가 올바르지 않습니다.");
         return;
       }
 
@@ -142,7 +142,7 @@ export default function Comment({
 
   const handleSaveEdit = async () => {
     if (isUploadingImages) {
-      alert("Images are still uploading. Please wait.");
+      alert("이미지 업로드가 아직 끝나지 않았어요. 잠시만 기다려 주세요.");
       return;
     }
 
@@ -162,7 +162,7 @@ export default function Comment({
       setVerifiedGuestPassword("");
       refreshComments();
     } catch (error: any) {
-      alert(error.message || "Failed to update the comment.");
+      alert(error.message || "댓글을 수정하지 못했습니다.");
     }
   };
 
@@ -211,7 +211,7 @@ export default function Comment({
 
   const handleReplySubmit = async () => {
     if (isUploadingReplyImages) {
-      alert("Images are still uploading. Please wait.");
+      alert("이미지 업로드가 아직 끝나지 않았어요. 잠시만 기다려 주세요.");
       return;
     }
 
@@ -260,7 +260,7 @@ export default function Comment({
         }
       }
     } catch (error: any) {
-      alert(error?.message || "Failed to reply to the comment.");
+      alert(error?.message || "답글을 등록하지 못했습니다.");
     }
   };
 
@@ -278,7 +278,7 @@ export default function Comment({
           {comment.user?.avatar ? (
             <img
               src={comment.user.avatar.replace("/public", "/avatar")}
-              alt={`${comment.user.nickname ?? "Anonymous"} profile image`}
+              alt={`${comment.user.nickname ?? "익명"} 프로필 이미지`}
               className="w-10 h-10 rounded-full object-cover mr-4"
               loading="lazy"
               referrerPolicy="no-referrer"
@@ -290,7 +290,7 @@ export default function Comment({
             <div className="flex justify-between items-center -mb-2">
               <div className="flex items-center flex-wrap">
                 <span className="font-bold">
-                  {comment.user?.nickname ?? comment.nickname ?? "Anonymous"}
+                  {comment.user?.nickname ?? comment.nickname ?? "익명"}
                 </span>
                 {!comment.user && comment.ip && (
                   <span className="text-gray-400 ml-2 text-xs">
@@ -323,7 +323,7 @@ export default function Comment({
                       <input
                         type="text"
                         name="nickname"
-                        placeholder="Nickname"
+                        placeholder="닉네임"
                         value={editedNickname}
                         onChange={(e) => setEditedNickname(e.target.value)}
                         className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
@@ -331,7 +331,7 @@ export default function Comment({
                       <input
                         type="password"
                         name="password"
-                        placeholder="Password"
+                        placeholder="비밀번호"
                         value={editedPassword}
                         onChange={(e) => setEditedPassword(e.target.value)}
                         className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
@@ -352,7 +352,7 @@ export default function Comment({
                     <div className="absolute inset-0 flex justify-center items-center bg-opacity-75 bg-white">
                       <div className="w-5 h-5 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
                       <span className="ml-3 text-lg text-gray-700">
-                        Uploading image...
+                        이미지 업로드 중...
                       </span>
                     </div>
                   )}
@@ -362,7 +362,7 @@ export default function Comment({
                         htmlFor={`comment-image-${comment.idx}`}
                         className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
                       >
-                        Choose image
+                        이미지 선택
                       </label>
                       <input
                         onChange={onImageChange}
@@ -379,13 +379,13 @@ export default function Comment({
                         onClick={handleSaveEdit}
                         className="text-green-500 hover:underline mr-2"
                       >
-                        Save
+                        저장
                       </button>
                       <button
                         onClick={handleCancelEdit}
                         className="text-gray-500 hover:underline"
                       >
-                        Cancel
+                        취소
                       </button>
                     </div>
                   </div>
@@ -453,7 +453,7 @@ export default function Comment({
                             src={safeSrc}
                             allow={allow}
                             className="block mt-4 -mb-2"
-                            title={title || "Embedded video"}
+                            title={title || "삽입된 동영상"}
                             loading="lazy"
                             referrerPolicy="strict-origin-when-cross-origin"
                             sandbox="allow-same-origin allow-scripts allow-popups"
@@ -479,7 +479,7 @@ export default function Comment({
                       </button>
                       <img
                         src={selectedImage}
-                        alt="Comment image"
+                        alt="댓글 이미지"
                         className="max-h-full max-w-full"
                         referrerPolicy="no-referrer"
                       />
@@ -491,7 +491,7 @@ export default function Comment({
             <div className="flex justify-end mt-6">
               <div className="text-gray-500 text-sm">
                 <button onClick={handleReply} className="hover:underline mr-2">
-                  Reply
+                  답글
                 </button>
                 {(isOwner || comment.hasPassword) && !isEditing && (
                   <>
@@ -499,7 +499,7 @@ export default function Comment({
                       onClick={handleEdit}
                       className="hover:underline mr-2"
                     >
-                      Edit
+                      수정
                     </button>
                     <button
                       onClick={() =>
@@ -507,7 +507,7 @@ export default function Comment({
                       }
                       className="hover:underline"
                     >
-                      Delete
+                      삭제
                     </button>
                   </>
                 )}
@@ -520,7 +520,7 @@ export default function Comment({
                     <input
                       type="text"
                       name="nickname"
-                      placeholder="Nickname"
+                      placeholder="닉네임"
                       value={replyNickname}
                       onChange={(e) => setReplyNickname(e.target.value)}
                       className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
@@ -528,7 +528,7 @@ export default function Comment({
                     <input
                       type="password"
                       name="password"
-                      placeholder="Password"
+                      placeholder="비밀번호"
                       value={replyPassword}
                       onChange={(e) => setReplyPassword(e.target.value)}
                       className="w-full sm:w-1/2 px-2 py-1.5 border rounded-lg"
@@ -550,7 +550,7 @@ export default function Comment({
                     <div className="absolute inset-0 flex justify-center items-center bg-opacity-75 bg-white">
                       <div className="w-5 h-5 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
                       <span className="ml-3 text-lg text-gray-700">
-                        Uploading image...
+                        이미지 업로드 중...
                       </span>
                     </div>
                   )}
@@ -561,7 +561,7 @@ export default function Comment({
                       htmlFor={`reply-image-${comment.idx}`}
                       className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
                     >
-                      Choose image
+                      이미지 선택
                     </label>
                     <input
                       onChange={onReplyImageChange}
@@ -578,13 +578,13 @@ export default function Comment({
                       onClick={handleReplySubmit}
                       className="text-green-500 hover:underline mr-2"
                     >
-                      Post
+                      등록
                     </button>
                     <button
                       onClick={handleCancelReply}
                       className="text-gray-500 hover:underline"
                     >
-                      Cancel
+                      취소
                     </button>
                   </div>
                 </div>

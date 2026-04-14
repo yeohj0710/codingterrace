@@ -38,6 +38,7 @@ export async function handlePaste(
     const { success, result } = await getUploadUrl();
 
     if (!success) {
+      alert("안전한 이미지 업로드 주소를 가져오지 못했습니다.");
       setIsUploadingImages(false);
       return;
     }
@@ -52,6 +53,7 @@ export async function handlePaste(
     });
 
     if (!uploadResponse.ok) {
+      alert("이미지를 업로드하지 못했습니다.");
       setIsUploadingImages(false);
       return;
     }
@@ -61,6 +63,7 @@ export async function handlePaste(
     const fileUrl = variants.find((url: string) => url.endsWith("/public"));
 
     if (!fileUrl) {
+      alert("업로드한 이미지 주소를 확인하지 못했습니다.");
       setIsUploadingImages(false);
       return;
     }

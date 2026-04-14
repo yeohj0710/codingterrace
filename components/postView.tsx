@@ -33,7 +33,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
       const postIdx = Number(idx);
 
       if (Number.isNaN(postIdx)) {
-        window.alert("The requested post does not exist.");
+        window.alert("요청한 게시글을 찾을 수 없습니다.");
         window.location.href = basePath;
         return;
       }
@@ -41,7 +41,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
       const fetchedPost = await getPost(postIdx, category);
 
       if (!fetchedPost) {
-        window.alert("The requested post does not exist.");
+        window.alert("요청한 게시글을 찾을 수 없습니다.");
         window.location.href = basePath;
         return;
       }
@@ -72,7 +72,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
       setIsDeleting(true);
 
       if (post.hasPassword) {
-        const password = window.prompt("Enter the post password.");
+        const password = window.prompt("게시글 비밀번호를 입력해 주세요.");
 
         if (!password) {
           setIsDeleting(false);
@@ -81,7 +81,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
 
         await deletePost(post.idx, password);
       } else {
-        const confirmed = window.confirm("Delete this post?");
+        const confirmed = window.confirm("게시글을 삭제할까요?");
 
         if (!confirmed) {
           setIsDeleting(false);
@@ -91,10 +91,10 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
         await deletePost(post.idx);
       }
 
-      window.alert("The post was deleted.");
+      window.alert("게시글을 삭제했습니다.");
       window.location.href = basePath;
     } catch (error: any) {
-      window.alert(error?.message || "Failed to delete the post.");
+      window.alert(error?.message || "게시글을 삭제하지 못했습니다.");
       setIsDeleting(false);
     }
   };
@@ -117,7 +117,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                 {post.user?.avatar && (
                   <img
                     src={post.user.avatar.replace("/public", "/avatar")}
-                    alt={`${post.user.nickname} profile image`}
+                    alt={`${post.user.nickname} 프로필 이미지`}
                     className="w-7 h-7 rounded-full object-cover"
                     loading="lazy"
                     referrerPolicy="no-referrer"
@@ -192,7 +192,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                       src={safeSrc}
                       allow={allow}
                       className="mx-auto block mt-4 -mb-2"
-                      title={title || "Embedded video"}
+                      title={title || "삽입된 동영상"}
                       loading="lazy"
                       referrerPolicy="strict-origin-when-cross-origin"
                       sandbox="allow-same-origin allow-scripts allow-popups"
@@ -217,7 +217,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                 </button>
                 <img
                   src={selectedImage}
-                  alt="Post image"
+                  alt="게시글 이미지"
                   className="max-h-full max-w-full"
                   referrerPolicy="no-referrer"
                 />
@@ -235,7 +235,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                     : "bg-green-400 text-white hover:bg-green-500"
                 }`}
               >
-                Edit
+                수정
               </button>
               <button
                 onClick={handleDelete}
@@ -246,7 +246,7 @@ export default function PostView({ idx, category, basePath }: PostViewProps) {
                     : "bg-red-400 text-white hover:bg-red-500"
                 }`}
               >
-                {isDeleting ? "Deleting..." : "Delete"}
+                {isDeleting ? "삭제 중..." : "삭제"}
               </button>
             </div>
           )}

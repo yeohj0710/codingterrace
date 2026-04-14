@@ -47,7 +47,7 @@ export default function PostForm({
       const postData = await getPost(Number(idx), category);
 
       if (!postData) {
-        alert("The requested post does not exist.");
+        alert("요청한 게시글을 찾을 수 없습니다.");
         router.push(basePath);
         return;
       }
@@ -59,19 +59,19 @@ export default function PostForm({
 
       if (postData.user) {
         if (!userData || userData.idx !== postData.user.idx) {
-          alert("You do not have permission to edit this post.");
+          alert("이 게시글을 수정할 권한이 없습니다.");
           router.push(basePath);
         }
         return;
       }
 
       if (!postData.hasPassword) {
-        alert("This guest post can no longer be edited.");
+        alert("이 익명 게시글은 더 이상 수정할 수 없습니다.");
         router.push(basePath);
         return;
       }
 
-      const passwordInput = window.prompt("Enter the post password.");
+      const passwordInput = window.prompt("게시글 비밀번호를 입력해 주세요.");
 
       if (!passwordInput) {
         router.push(basePath);
@@ -87,7 +87,7 @@ export default function PostForm({
       }
 
       if (!isValidPassword) {
-        alert("Invalid post password.");
+        alert("게시글 비밀번호가 올바르지 않습니다.");
         router.push(basePath);
         return;
       }
@@ -143,7 +143,7 @@ export default function PostForm({
     e.preventDefault();
 
     if (isUploadingImages) {
-      alert("Images are still uploading. Please wait.");
+      alert("이미지 업로드가 아직 끝나지 않았어요. 잠시만 기다려 주세요.");
       return;
     }
 
@@ -190,7 +190,7 @@ export default function PostForm({
 
       clearPostCache(category);
     } catch (error: any) {
-      alert(error?.message || "Failed to save the post.");
+      alert(error?.message || "게시글을 저장하지 못했습니다.");
     } finally {
       setIsSubmitting(false);
     }
@@ -208,7 +208,7 @@ export default function PostForm({
     <div className="flex flex-col items-center">
       <div className="flex flex-col w-full sm:w-[640px] xl:w-1/2 mx-auto pt-8 sm:pb-10">
         <h1 className="text-xl font-bold ml-5 sm:ml-0 sm:mb-5">
-          {mode === "add" ? "Write Post" : "Edit Post"}
+          {mode === "add" ? "글쓰기" : "글 수정"}
         </h1>
         <form
           onSubmit={handleSubmit}
@@ -219,13 +219,13 @@ export default function PostForm({
           )}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              Title
+              제목
             </label>
             <Input
               name="title"
               type="text"
               required
-              placeholder="Enter a title"
+              placeholder="제목을 입력해 주세요"
               className="w-full p-2 border rounded-lg"
               value={title}
               onChange={handleTitleChange}
@@ -234,17 +234,17 @@ export default function PostForm({
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mb-4">
             <div className="w-full sm:w-1/2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                Author
+                작성자
               </label>
               {user ? (
                 <div className="px-2 py-1.5 border rounded-lg text-gray-500 bg-gray-200">
-                  {user.nickname ?? "Anonymous"}
+                  {user.nickname ?? "익명"}
                 </div>
               ) : (
                 <Input
                   name="nickname"
                   type="text"
-                  placeholder="Enter a nickname"
+                  placeholder="닉네임을 입력해 주세요"
                   className="w-full px-2 py-1.5 border rounded-lg"
                   value={nickname}
                   onChange={handleNicknameChange}
@@ -254,9 +254,9 @@ export default function PostForm({
             </div>
             <div className="w-full sm:w-1/2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                Password
+                비밀번호
                 <span className="text-xs ml-1">
-                  (required to edit or delete guest posts)
+                  (익명 글 수정·삭제 시 필요)
                 </span>
               </label>
               {user ? (
@@ -267,7 +267,7 @@ export default function PostForm({
                 <input
                   name="password"
                   type="password"
-                  placeholder="Enter a password"
+                  placeholder="비밀번호를 입력해 주세요"
                   value={password}
                   onChange={handlePasswordChange}
                   className="w-full px-2 py-1.5 border rounded-lg"
@@ -279,13 +279,13 @@ export default function PostForm({
           </div>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              Content
+              내용
             </label>
             <div className="relative">
               <textarea
                 ref={contentRef}
                 name="content"
-                placeholder="Enter the post content"
+                placeholder="내용을 입력해 주세요"
                 required
                 value={content}
                 onChange={handleContentChange}
@@ -298,7 +298,7 @@ export default function PostForm({
                 <div className="absolute inset-0 flex justify-center items-center bg-opacity-75 bg-white">
                   <div className="w-5 h-5 border-4 border-t-transparent border-green-500 rounded-full animate-spin"></div>
                   <span className="ml-3 text-lg text-gray-700">
-                    Uploading image...
+                    이미지 업로드 중...
                   </span>
                 </div>
               )}
@@ -306,14 +306,14 @@ export default function PostForm({
           </div>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-4">
-              Add Images
+              이미지 추가
             </label>
             <div className="relative inline-block">
               <label
                 htmlFor="image"
                 className="mt-2 px-4 py-2 bg-green-400 text-white rounded-lg cursor-pointer hover:bg-green-500"
               >
-                Choose images
+                이미지 선택
               </label>
               <input
                 onChange={onImageChange}
@@ -338,13 +338,13 @@ export default function PostForm({
             >
               {isSubmitting ? (
                 <>
-                  {mode === "add" ? "Posting..." : "Saving..."}
+                  {mode === "add" ? "등록 중..." : "저장 중..."}
                   <div className="ml-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
                 </>
               ) : mode === "add" ? (
-                "Post"
+                "등록"
               ) : (
-                "Save"
+                "저장"
               )}
             </button>
           </div>

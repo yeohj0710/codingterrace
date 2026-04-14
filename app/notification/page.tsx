@@ -8,7 +8,7 @@ export async function generateMetadata() {
 
 export default function NotificationPage() {
   return (
-    <div className="flex flex-col items-center my-5 sm:my-10">
+    <div className="my-5 flex flex-col items-center sm:my-10">
       <OpenExternalInKakao path="/notification" />
       <NotificationPanel />
     </div>

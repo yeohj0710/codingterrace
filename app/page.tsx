@@ -5,7 +5,7 @@ import Weather from "@/components/weather";
 
 export default async function Home() {
   return (
-    <div className="flex flex-col items-center gap-8 my-5 sm:my-8">
+    <div className="my-5 flex flex-col items-center gap-8 sm:my-8">
       <OpenExternalInKakao path="/" />
       <BoardComponent
         category="technote"
