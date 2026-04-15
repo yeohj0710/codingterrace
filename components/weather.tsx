@@ -287,7 +287,7 @@ export default function Weather() {
         </span>
       </div>
       <div className="flex flex-col text-sm text-gray-500 gap-1">
-        <span>"오늘 우산이 필요할까?" 매번 확인하기 번거로우셨죠?</span>
+        <span>&quot;오늘 우산이 필요할까?&quot; 매번 확인하기 번거로우셨죠?</span>
         <span>코딩테라스가 현재 위치 기준 날씨를 빠르게 알려드릴게요.</span>
         <span className="text-xs text-blue-400 mt-1">
           * 서버가 오래 쉬고 있었다면 처음엔 응답까지 30초 정도 걸릴 수 있어요.

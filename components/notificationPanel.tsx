@@ -18,9 +18,15 @@ export default function NotificationPanel() {
   const [isSending, setIsSending] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   const [isOperator, setIsOperator] = useState(false);
+  const [notificationPermission, setNotificationPermission] =
+    useState<NotificationPermission | null>(null);
 
   useEffect(() => {
     const initializeNotification = async () => {
+      if ("Notification" in window) {
+        setNotificationPermission(Notification.permission);
+      }
+
       if (!("serviceWorker" in navigator)) {
         console.error("이 브라우저는 서비스 워커를 지원하지 않습니다.");
         return;
@@ -94,6 +100,9 @@ export default function NotificationPanel() {
       const permissionGranted = await requestNotificationPermission(() => {
         setIsAlertVisible(true);
       });
+      if ("Notification" in window) {
+        setNotificationPermission(Notification.permission);
+      }
 
       if (!permissionGranted) {
         return;
@@ -107,6 +116,9 @@ export default function NotificationPanel() {
     } catch (error) {
       console.error("알림 설정을 변경하지 못했습니다:", error);
     } finally {
+      if ("Notification" in window) {
+        setNotificationPermission(Notification.permission);
+      }
       setIsProcessing(false);
     }
   };
@@ -186,7 +198,7 @@ export default function NotificationPanel() {
 
       {isAlertVisible && <CustomAlert onClose={() => setIsAlertVisible(false)} />}
 
-      {!isAlertVisible && Notification.permission === "denied" ? (
+      {!isAlertVisible && notificationPermission === "denied" ? (
         <button
           type="button"
           onClick={() => setIsAlertVisible(true)}

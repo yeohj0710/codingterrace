@@ -31,6 +31,8 @@ export default function BoardComponent({
   const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
+  const [notificationPermission, setNotificationPermission] =
+    useState<NotificationPermission | null>(null);
   const canWrite = category !== "technote" || isOperator;
 
   useEffect(() => {
@@ -40,6 +42,10 @@ export default function BoardComponent({
     };
 
     const checkSubscriptionStatus = async () => {
+      if ("Notification" in window) {
+        setNotificationPermission(Notification.permission);
+      }
+
       if (!("serviceWorker" in navigator)) {
         console.error("이 브라우저는 서비스 워커를 지원하지 않습니다.");
         setIsSubscribed(false);
@@ -96,6 +102,9 @@ export default function BoardComponent({
         const permissionGranted = await requestNotificationPermission(() => {
           setIsAlertVisible(true);
         });
+        if ("Notification" in window) {
+          setNotificationPermission(Notification.permission);
+        }
 
         if (!permissionGranted) {
           return;
@@ -113,6 +122,9 @@ export default function BoardComponent({
     } catch (error) {
       console.error("알림 설정 중 오류가 발생했습니다:", error);
     } finally {
+      if ("Notification" in window) {
+        setNotificationPermission(Notification.permission);
+      }
       setIsProcessing(false);
     }
   };
@@ -170,7 +182,7 @@ export default function BoardComponent({
 
       {isAlertVisible ? (
         <CustomAlert onClose={() => setIsAlertVisible(false)} />
-      ) : Notification.permission === "denied" ? (
+      ) : notificationPermission === "denied" ? (
         <button
           type="button"
           onClick={() => setIsAlertVisible(true)}
